@@ -8,7 +8,7 @@ information about whether the newly-banned user is present in any of the
 other servers."""
 
 
-import discord
+import discord  # This uses pycord, not discord.py
 
 
 def main():

@@ -62,7 +62,9 @@ def rf1_ale_handler(entry: discord.AuditLogEntry) -> bool:
 
 # With the class structure set up, define some MonitoredGuild objects for public use.
 lux_dev_mg = MonitoredGuild(1079109375647555695, "Lux's Dev Server", true_ale_handler)
-rf1_mg = MonitoredGuild(177387572505346048, "/r/formula1", rf1_ale_handler)
+r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", rf1_ale_handler)
+# formula_1_mg = MonitoredGuild(142082511902605313, "Formula One", None)
+# nascar_mg = MonitoredGuild(877239953174691910, "Nascar", None)
 
 MONITORED_GUILDS = {  # Publish a dict that maps each guild ID to its MonitoredGuild.
     mg_object.guild_id: mg_object

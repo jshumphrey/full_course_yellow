@@ -9,21 +9,33 @@ other servers."""
 
 import discord  # This uses pycord, not discord.py
 import typing
+from typing import Any
 
 import motorsport_ban_guilds as mba_guilds
 
 
 TOKEN_FILENAME = "token.txt"
 
-# List of (guild_id, channel_id) tuples to send alerts to
-ALERT_TARGET_CHANNELS: list[tuple[int, int]] = [
-    (1079109375647555695, 1105555454605672448),  # #ban-alerts in Lux's Dev/Testing
-    # (959541053915037697, 960480902331383809),  # alerts in Staff of MS Discords
-]
-
 
 class MBABot(discord.Bot):
     """This subclass of Bot defines the Motorsport Ban Alerts bot."""
+
+    async def on_error(
+        self,
+        event_method: str,
+        *args: Any,
+        **kwargs: Any,
+    ) -> None:
+        """This overrides the default discord.Client on_error method,
+        which essentially ignores any exceptions thrown (but prints them
+        to sys.stderr). It's okay for this bot to be more fragile since
+        it's running in a limited use-case, so we want the exceptions
+        to actually be propagated out of the Client instance.
+
+        Pycord specifies that, to do this, this method contains only a
+        bare `raise` statement, so that's what's here."""
+
+        raise # pylint: disable = misplaced-bare-raise
 
     async def on_ready(self) -> None:
         """When the bot has logged in and begun running, we need to ensure
@@ -36,8 +48,19 @@ class MBABot(discord.Bot):
 
         If any of these conditions are not fulfilled, we crash out."""
 
-        for guild_id, channel_id in ALERT_TARGET_CHANNELS:
-            pass
+        for alert_guild in mba_guilds.ALERT_GUILDS.values():
+            if alert_guild.is_bot_installed(self) is False:
+                raise RuntimeError(
+                    f"The bot is configured to send alerts to {alert_guild.name}, "
+                    "but the bot is not installed in the server!"
+                )
+
+            if alert_guild.can_bot_send_alerts(self) is False:
+                raise RuntimeError(
+                    f"The bot is configured to send alerts to {alert_guild.name}, "
+                    "but it does not have the appropriate permissions "
+                    "in that server's configured alert channel!"
+                )
 
     async def on_audit_log_entry(self, entry: discord.AuditLogEntry) -> None:
         """When an audit log entry is created in an installed guild,

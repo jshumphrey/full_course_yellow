@@ -113,7 +113,7 @@ r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", rf1_ale_handler)
 MONITORED_GUILDS: dict[GuildID, MonitoredGuild] = {
     mg_object.guild_id: mg_object
     for object_name, mg_object in locals().items()
-    if object_name[:3] == "_mg"
+    if object_name[-3:] == "_mg"
 }
 
 lux_dev_ag = AlertGuild(1079109375647555695, "Lux's Dev Server", 1105555454605672448)
@@ -123,5 +123,9 @@ lux_dev_ag = AlertGuild(1079109375647555695, "Lux's Dev Server", 110555545460567
 ALERT_GUILDS: dict[GuildID, AlertGuild] = {
     ag_object.guild_id: ag_object
     for object_name, ag_object in locals().items()
-    if object_name[:3] == "_ag"
+    if object_name[-3:] == "_ag"
 }
+
+if __name__ == "__main__":
+    breakpoint() # pylint: disable = forgotten-debug-statement
+    pass # pylint: disable = unnecessary-pass

@@ -7,11 +7,11 @@ Discords" server, alerting all mod staff of the new ban, and providing
 information about whether the newly-banned user is present in any of the
 other servers."""
 
-import dill
+# pylint: disable = protected-access
+
 import discord  # This uses pycord, not discord.py
 import logging
 import typing
-from typing import Any
 
 import motorsport_ban_guilds as mba_guilds
 
@@ -67,6 +67,8 @@ class MBABot(discord.Bot):
         if entry.action != discord.AuditLogAction.ban:
             return
 
+        mba_logger.debug(f"{entry.__dict__}")
+
         try:
             ale_handler = mba_guilds.MONITORED_GUILDS[entry.guild.id].audit_log_handler
 
@@ -77,34 +79,41 @@ class MBABot(discord.Bot):
             ) from ex
 
         if ale_handler(entry) is True:
-            await self.create_alert(entry)
+            alert_embed = await self.create_alert_embed(entry)
+            await self.send_alert(alert_embed)
 
-    async def create_alert(self, entry: discord.AuditLogEntry) -> None:
+    async def create_alert_embed(self, entry: discord.AuditLogEntry) -> discord.Embed:
         """This handles the process of creating an alert from a provided ALE."""
 
-        banned_user = typing.cast(discord.User, entry.target)
-        base_embed = (
-            discord.Embed(type = "rich", timestamp = entry.created_at)
+        banned_user_id = typing.cast(int, entry._target_id)
+        banned_user = await self.get_or_fetch_user(banned_user_id)
+        if not banned_user:
+            raise RuntimeError(f"Could not find any Discord user with user ID {banned_user_id}!")
+
+        mutual_guild_names = (
+            "None" if not (mutual_guilds := banned_user.mutual_guilds)
+            else ", ".join(g.name for g in mutual_guilds)
+        )
+
+        description = (
+            f"**Banning server:** {entry.guild.name}\n\n"
+            f"**Ban reason:** {entry.reason or ''}\n\n"
+            f"**Motorsport servers with user:** {mutual_guild_names}"
+        )
+
+        embed = (
+            discord.Embed(type = "rich", description = description, timestamp = entry.created_at)
             .set_author(
-                name = f"{banned_user.name}#{banned_user.discriminator}",
+                name = f"{banned_user.global_name} ({banned_user.name}#{banned_user.discriminator})",
                 icon_url = banned_user.display_avatar.url,
             )
-            .set_footer(text = f"User ID: {banned_user.id}")
-            .add_field(name = "Banned from", value = entry.guild.name)
-            .add_field(name = "Ban reason", value = entry.reason or "")
+            .set_footer(text = f"Banned user's ID: {banned_user.id}")
         )
 
-        mgs_with_user: list[mba_guilds.MonitoredGuild] = []
-        for monitored_guild in mba_guilds.MONITORED_GUILDS.values():
-            if (guild := self.get_guild(monitored_guild.guild_id)) is None:
-                continue
-            if guild.query_members(user_ids = [banned_user.id], cache = False) != []:
-                mgs_with_user.append(monitored_guild)
+        return embed
 
-        base_embed.add_field(
-            name = "Monitored servers with user",
-            value = ", ".join(mg.name for mg in mgs_with_user) if mgs_with_user else "None"
-        )
+    async def send_alert(self, alert_embed: discord.Embed) -> None:
+        """This handles the process of sending a prepared alert out to the AlertGuilds."""
 
         for alert_guild in mba_guilds.ALERT_GUILDS.values():
             if (guild := self.get_guild(alert_guild.guild_id)) is None:
@@ -114,10 +123,10 @@ class MBABot(discord.Bot):
             if not isinstance(channel, discord.TextChannel):
                 continue
 
-            embed = base_embed.copy()
+            embed = alert_embed.copy()
             # embed.description = description
             await channel.send(
-                content = "A new user ban has been detected!",
+                content = "A new permanent ban has been detected!",
                 embed = embed,
             )
 

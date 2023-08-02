@@ -13,11 +13,13 @@ import datetime
 import discord  # This uses pycord, not discord.py
 from discord import commands
 import logging
-import typing
 from typing import Optional
 
 import motorsport_ban_guilds as mba_guilds
 #import motorsport_ban_cogs as mba_cogs
+
+
+Actor = discord.User | discord.Member
 
 
 TOKEN_FILENAME = "token.txt"
@@ -86,7 +88,7 @@ class MBABot(discord.Bot):
 
         if ale_handler(entry) is True:
             alert_embed = await self.create_alert_embed(
-                banned_user = await self.solidify_user_abstract(entry._target_id),
+                banned_actor = await self.solidify_actor_abstract(entry._target_id),
                 banning_server_name = entry.guild.name,
                 ban_reason = entry.reason,
             )
@@ -95,41 +97,46 @@ class MBABot(discord.Bot):
                 alert_embed = alert_embed,
             )
 
-    async def solidify_user_abstract(self, user_abstract: discord.User | int | str | None) -> discord.User:
-        """This takes a "user abstract" - a nebulous parameter that might be a fully-fledged discord.User,
-        or their user ID in integer form, their user ID in string form, or None. The user abstract is then
-        "solidified" into a real discord.User, if possible. If not possible, RuntimeError is raised."""
+    async def solidify_actor_abstract(self, actor_abstract: Actor | int | str | None) -> Actor:
+        """This takes a "Actor abstract" - a nebulous parameter that might be a fully-fledged Actor,
+        or their user ID in integer form, their user ID in string form, or None. The actor abstract is then
+        "solidified" into a real Actor, if possible. If not possible, RuntimeError is raised."""
 
-        if user_abstract is None:
-            raise RuntimeError("Attempted to solidify the provided user abstract, but it is None!")
+        if actor_abstract is None:
+            raise RuntimeError("Attempted to solidify the provided Actor abstract, but it is None!")
 
-        if isinstance(user_abstract, discord.User):
-            return user_abstract
+        if isinstance(actor_abstract, Actor):
+            return actor_abstract
 
-        user_id = int(user_abstract)
-        user = await self.fetch_user(user_id)
-        if user is None:
+        user_id = int(actor_abstract)
+        actor = await self.fetch_user(user_id)
+        if actor is None:
             raise RuntimeError(
-                "Attempted to solidify the provided user abstract, "
+                "Attempted to solidify the provided Actor abstract, "
                 f"but could not find any Discord user with user ID {user_id}!"
             )
 
-        return user
+        return actor
 
-    def get_mutual_monitored_guilds(self, user: discord.User) -> list[mba_guilds.MonitoredGuild]:
-        """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided user."""
-        return [mg for mg in mba_guilds.MONITORED_GUILDS.values() if mg.guild_id in {g.id for g in user.mutual_guilds}]
+    def get_mutual_monitored_guilds(self, actor: Actor) -> list[mba_guilds.MonitoredGuild]:
+        """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor."""
+        return [mg for mg in mba_guilds.MONITORED_GUILDS.values() if mg.guild_id in {g.id for g in actor.mutual_guilds}]
+
+    def pprint_actor_name(self, actor: Actor) -> str:
+        """This is a quick shortcut to generate a pretty-printed Actor name.
+        This requires an actual Actor; await solidify_actor_abstract if necessary."""
+        return f"{actor.global_name} ({actor.name}#{actor.discriminator})"
 
     async def create_alert_embed(
         self,
-        banned_user: discord.User,
+        banned_actor: Actor,
         banning_server_name: str,
         ban_reason: Optional[str],
         timestamp: datetime.datetime = datetime.datetime.now(),
     ):
         """This handles the process of creating an alert from a provided ALE."""
 
-        mutual_mgs = self.get_mutual_monitored_guilds(banned_user)
+        mutual_mgs = self.get_mutual_monitored_guilds(banned_actor)
         mutual_mg_names = "None" if not mutual_mgs else ", ".join(mg.name for mg in mutual_mgs)
 
         embed = (
@@ -138,10 +145,10 @@ class MBABot(discord.Bot):
                 timestamp = timestamp,
             )
             .set_author(
-                name = f"{banned_user.global_name} ({banned_user.name}#{banned_user.discriminator})",
-                icon_url = banned_user.display_avatar.url,
+                name = self.pprint_actor_name(banned_actor),
+                icon_url = banned_actor.display_avatar.url,
             )
-            .set_footer(text = f"Banned user's ID: {banned_user.id}")
+            .set_footer(text = f"Banned user's ID: {banned_actor.id}")
             .add_field(name = "Banning server", value = banning_server_name, inline = False)
             .add_field(name = "Ban reason", value = ban_reason or "", inline = False)
             .add_field(name = "Motorsport servers with user", value = mutual_mg_names, inline = False)
@@ -152,13 +159,10 @@ class MBABot(discord.Bot):
     async def old_create_alert_embed(self, entry: discord.AuditLogEntry) -> discord.Embed:
         """This handles the process of creating an alert from a provided ALE."""
 
-        banned_user_id = typing.cast(int, entry._target_id)
-        banned_user = await self.get_or_fetch_user(banned_user_id)
-        if not banned_user:
-            raise RuntimeError(f"Could not find any Discord user with user ID {banned_user_id}!")
+        banned_actor = await self.solidify_actor_abstract(entry._target_id)
 
         mutual_guild_names = (
-            "None" if not (mutual_guilds := banned_user.mutual_guilds)
+            "None" if not (mutual_guilds := banned_actor.mutual_guilds)
             else ", ".join(g.name for g in mutual_guilds)
         )
 
@@ -175,10 +179,10 @@ class MBABot(discord.Bot):
                 timestamp = entry.created_at
             )
             .set_author(
-                name = f"{banned_user.global_name} ({banned_user.name}#{banned_user.discriminator})",
-                icon_url = banned_user.display_avatar.url,
+                name = self.pprint_actor_name(banned_actor),
+                icon_url = banned_actor.display_avatar.url,
             )
-            .set_footer(text = f"Banned user's ID: {banned_user.id}")
+            .set_footer(text = f"Banned user's ID: {banned_actor.id}")
             .add_field(name = "Banning server", value = entry.guild.name)
         )
 
@@ -244,10 +248,26 @@ class MBABot(discord.Bot):
         ctx: discord.ApplicationContext,
         user_id: int,
         server: str,
-        reason,
+        reason: Optional[str],
     ) -> None:
-        pass
+        """Executes the flow to create and send an alert from a slash command.
+        Responds to the user via an ephemeral message."""
 
+        embed = await self.create_alert_embed(
+            banned_actor = await self.solidify_actor_abstract(user_id),
+            banning_server_name = server,
+            ban_reason = reason
+        )
+        await self.send_alert(
+            message_body = f"New Alert raised by {self.pprint_actor_name(ctx.user)}!",
+            alert_embed = embed
+        )
+
+        await ctx.send_response(
+            content = "Successfully raised an alert.",
+            ephemeral = True,
+            delete_after = 10,
+        )
 
 
 def read_token(token_filename: str) -> str:

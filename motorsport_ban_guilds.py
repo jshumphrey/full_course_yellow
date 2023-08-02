@@ -1,7 +1,6 @@
 """This contains functionality to represent the servers monitored by motorsport_ban_alerts."""
 # pylint: disable = too-few-public-methods
 
-
 import discord
 import typing
 from typing import Callable

@@ -1,13 +1,14 @@
 """This contains functionality to represent the servers monitored by motorsport_ban_alerts."""
-# pylint: disable = too-few-public-methods
+# pylint: disable = too-few-public-methods, invalid-name
 
 import discord
 import typing
-from typing import Callable
+from typing import Callable, Optional
 
 Snowflake = int
-GuildID = Snowflake
 ChannelID = Snowflake
+GuildID = Snowflake
+RoleID = Snowflake
 
 
 class InstalledGuild:
@@ -15,11 +16,15 @@ class InstalledGuild:
     This might be a Guild that is monitored for new bans (a MonitoredGuild),
     or a Guild that receives alert messages about new bans (an AlertGuild)."""
 
-    guild_id: GuildID
+    id: GuildID
     name: str
 
-    def __init__(self, guild_id: GuildID, name: str) -> None:
-        self.guild_id = guild_id
+    def __init__(
+        self,
+        id: GuildID,  # pylint: disable = redefined-builtin
+        name: str
+    ) -> None:
+        self.id = id
         self.name = name
 
     def __str__(self) -> str:
@@ -27,32 +32,36 @@ class InstalledGuild:
 
     async def is_bot_installed(self, bot: discord.Bot) -> bool:
         """Assesses whether the provided bot is installed on the guild."""
-        return self.guild_id in {guild.id for guild in bot.guilds}
+        return self.id in {guild.id for guild in bot.guilds}
 
 
 class AlertGuild(InstalledGuild):
-    """An AlertGuild is a type of InstalledGuild that receives alert messages for new bans."""
+    """An AlertGuild is a type of InstalledGuild that has a channel that
+    posts new alert messages from this bot."""
 
-    guild_id: GuildID
+    id: GuildID
     name: str
 
-    alert_target_channel_id: ChannelID
+    alert_channel_id: ChannelID
+    guild_notification_roles: Optional[dict[GuildID, RoleID]]
 
     def __init__(
         self,
-        guild_id: GuildID,
+        id: GuildID, # pylint: disable = redefined-builtin
         name: str,
-        alert_target_channel_id: ChannelID,
+        alert_channel_id: ChannelID,
+        guild_notification_roles: Optional[dict[GuildID, RoleID]] = None,
     ) -> None:
-        super().__init__(guild_id, name)
-        self.alert_target_channel_id = alert_target_channel_id
+        super().__init__(id, name)
+        self.alert_channel_id = alert_channel_id
+        self.guild_notification_roles = guild_notification_roles
 
     async def can_bot_send_alerts(self, bot: discord.Bot) -> bool:
         """Assesses whether the provided bot has the permissions
         to send messages to this AlertGuild's alert channel."""
         return (
             bot
-            .get_partial_messageable(self.alert_target_channel_id)
+            .get_partial_messageable(self.alert_channel_id)
             .can_send(discord.Message)
         )
 
@@ -60,18 +69,18 @@ class AlertGuild(InstalledGuild):
 class MonitoredGuild(InstalledGuild):
     """A MonitoredGuild is a type of InstalledGuild that is monitored for new bans."""
 
-    guild_id: GuildID
+    id: GuildID
     name: str
 
     audit_log_handler: Callable[[discord.AuditLogEntry], bool]
 
     def __init__(
         self,
-        guild_id: int,
+        id: int, # pylint: disable = redefined-builtin
         name: str,
         audit_log_handler: Callable[[discord.AuditLogEntry], bool],
     ) -> None:
-        super().__init__(guild_id, name)
+        super().__init__(id, name)
         self.audit_log_handler = audit_log_handler
 
 
@@ -110,7 +119,7 @@ r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", rf1_ale_handler)
 
 # Publish a dict that maps each MonitoredGuild ID to its MonitoredGuild.
 MONITORED_GUILDS: dict[GuildID, MonitoredGuild] = {
-    mg_object.guild_id: mg_object
+    mg_object.id: mg_object
     for object_name, mg_object in locals().items()
     if object_name[-3:] == "_mg"
 }
@@ -120,7 +129,7 @@ lux_dev_ag = AlertGuild(1079109375647555695, "Lux's Dev/Testing Server", 1105555
 
 # Publish a dict that maps each AlertGuild ID to its AlertGuild.
 ALERT_GUILDS: dict[GuildID, AlertGuild] = {
-    ag_object.guild_id: ag_object
+    ag_object.id: ag_object
     for object_name, ag_object in locals().items()
     if object_name[-3:] == "_ag"
 }

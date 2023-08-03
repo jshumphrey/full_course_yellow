@@ -37,7 +37,7 @@ class MBAFunctionality(commands.Cog):
     @staticmethod
     def get_mutual_monitored_guilds(actor: Actor) -> list[mba_guilds.MonitoredGuild]:
         """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor."""
-        return [mg for mg in mba_guilds.MONITORED_GUILDS.values() if mg.guild_id in {g.id for g in actor.mutual_guilds}]
+        return [mg for mg in mba_guilds.MONITORED_GUILDS.values() if mg.id in {g.id for g in actor.mutual_guilds}]
 
     @commands.Cog.listener()
     async def on_ready(self) -> None:
@@ -190,24 +190,24 @@ class MBAFunctionality(commands.Cog):
         """This handles the process of sending a prepared alert out to the AlertGuilds."""
 
         for alert_guild in mba_guilds.ALERT_GUILDS.values():
-            if (guild := self.bot.get_guild(alert_guild.guild_id)) is None:
+            if (guild := self.bot.get_guild(alert_guild.id)) is None:
                 mba_logger.error(
                     f"send_alert: Unable to retrieve Guild for {alert_guild.name}! "
-                    f"(Guild ID: {alert_guild.guild_id})"
+                    f"(Guild ID: {alert_guild.id})"
                 )
                 return
 
-            if (channel := guild.get_channel(alert_guild.alert_target_channel_id)) is None:
+            if (channel := guild.get_channel(alert_guild.alert_channel_id)) is None:
                 mba_logger.error(
                     f"send_alert: Unable to retreive alert Channel for {alert_guild.name}! "
-                    f"(Guild ID: {alert_guild.guild_id}; Channel ID: {alert_guild.alert_target_channel_id})"
+                    f"(Guild ID: {alert_guild.id}; Channel ID: {alert_guild.alert_channel_id})"
                 )
                 return
 
             if not isinstance(channel, discord.TextChannel):
                 mba_logger.error(
                     f"send_alert: Designated alert Channel for {alert_guild.name} is not a text channel! "
-                    f"(Guild ID: {alert_guild.guild_id}; Channel ID: {alert_guild.alert_target_channel_id})"
+                    f"(Guild ID: {alert_guild.id}; Channel ID: {alert_guild.alert_channel_id})"
                 )
                 return
 
@@ -237,7 +237,7 @@ class MBAFunctionality(commands.Cog):
                 required = False,
             ),
         ],
-        guild_ids = list(mba_guilds.ALERT_GUILDS.keys()),
+        ids = list(mba_guilds.ALERT_GUILDS.keys()),
         guild_only = True,
         cooldown = None,
     )

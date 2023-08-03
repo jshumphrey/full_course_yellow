@@ -154,38 +154,6 @@ class MBAFunctionality(commands.Cog):
 
         return embed
 
-    async def old_create_alert_embed(self, entry: discord.AuditLogEntry) -> discord.Embed:
-        """This handles the process of creating an alert from a provided ALE."""
-
-        banned_actor = await self.solidify_actor_abstract(entry._target_id) # pylint: disable = protected-access
-
-        mutual_guild_names = (
-            "None" if not (mutual_guilds := banned_actor.mutual_guilds)
-            else ", ".join(g.name for g in mutual_guilds)
-        )
-
-        description = (
-            f"**Banning server:** {entry.guild.name}\n\n"
-            f"**Ban reason:** {entry.reason or ''}\n\n"
-            f"**Motorsport servers with user:** {mutual_guild_names}"
-        )
-
-        embed = (
-            discord.Embed(
-                type = "rich",
-                description = description,
-                timestamp = entry.created_at
-            )
-            .set_author(
-                name = self.pprint_actor_name(banned_actor),
-                icon_url = banned_actor.display_avatar.url,
-            )
-            .set_footer(text = f"Banned user's ID: {banned_actor.id}")
-            .add_field(name = "Banning server", value = entry.guild.name)
-        )
-
-        return embed
-
     async def send_alert(self, message_body: Optional[str], alert_embed: discord.Embed) -> None:
         """This handles the process of sending a prepared alert out to the AlertGuilds."""
 

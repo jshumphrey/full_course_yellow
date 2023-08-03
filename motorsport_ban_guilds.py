@@ -1,6 +1,8 @@
 """This contains functionality to represent the servers monitored by motorsport_ban_alerts."""
 # pylint: disable = too-few-public-methods, invalid-name
 
+from __future__ import annotations
+
 import discord
 import typing
 from typing import Callable, Optional
@@ -58,6 +60,17 @@ class AlertGuild(InstalledGuild):
         self.general_notification_role_id = general_notification_role_id
         self.guild_notification_roles = guild_notification_roles
 
+    def decorate_message_body(self, message_body: Optional[str]) -> str:
+        """"Decorates" the provided message body by prepending this AlertGuild's
+        general-notification Role, if one has been defined for this AlertGuild."""
+        return (
+            message_body or "" if self.general_notification_role_id is None
+            else f"<@&{self.general_notification_role_id}> {message_body or ''}"
+        )
+
+    def decorate_mutual_guilds(self, mutual_guilds: list[MonitoredGuild]) -> str:
+        pass
+
     async def can_bot_send_alerts(self, bot: discord.Bot) -> bool:
         """Assesses whether the provided bot has the permissions
         to send messages to this AlertGuild's alert channel."""
@@ -87,21 +100,23 @@ class MonitoredGuild(InstalledGuild):
         super().__init__(id, name)
         self.audit_log_handler = audit_log_handler
 
+    @staticmethod
+    def true_ale_handler(_: discord.AuditLogEntry) -> bool:
+        """Handle AuditLogEntries for servers for which bans are
+        always permanent (i.e. we should always create an alert."""
+        return True
 
-def true_ale_handler(_: discord.AuditLogEntry) -> bool:
-    """Handle AuditLogEntries for servers for which bans are
-    always permanent (i.e. we should always create an alert."""
-    return True
+    @staticmethod
+    def false_ale_handler(_: discord.AuditLogEntry) -> bool:
+        """An ALE handler that always returns False.
+        This can be used for MonitoredGuilds that do not wish to automatically raise alerts."""
+        return False
 
-def false_ale_handler(_: discord.AuditLogEntry) -> bool:
-    """An ALE handler that always returns False.
-    This can be used for MonitoredGuilds that do not wish to automatically raise alerts."""
-    return False
-
-def placeholder_ale_handler(_: discord.AuditLogEntry) -> bool:
-    """An ALE handler that always returns False.
-    This can be used to set up placeholder MonitoredGuilds."""
-    return False
+    @staticmethod
+    def placeholder_ale_handler(_: discord.AuditLogEntry) -> bool:
+        """An ALE handler that always returns False.
+        This can be used to set up placeholder MonitoredGuilds."""
+        return False
 
 
 def rf1_ale_handler(entry: discord.AuditLogEntry) -> bool:
@@ -126,25 +141,25 @@ def rf1_ale_handler(entry: discord.AuditLogEntry) -> bool:
 
 
 # With the class structure set up, define some MonitoredGuild objects for public use.
-lux_dev_mg = MonitoredGuild(1079109375647555695, "Lux's Dev/Testing Server", true_ale_handler)
+lux_dev_mg = MonitoredGuild(1079109375647555695, "Lux's Dev/Testing Server", MonitoredGuild.true_ale_handler)
 
-r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", placeholder_ale_handler)
-of1d_mg = MonitoredGuild(142082511902605313, "Formula One", placeholder_ale_handler)
-nascar_mg = MonitoredGuild(877239953174691910, "NASCAR", placeholder_ale_handler)
-ltl_mg = MonitoredGuild(271077595913781248, "Left Turn Lounge", placeholder_ale_handler)
-red_bull_mg = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", placeholder_ale_handler)
-mclaren_mg = MonitoredGuild(897158147511316522, "McLaren", placeholder_ale_handler)
-r_wec_mg = MonitoredGuild(193548511126487040, "/r/WEC", placeholder_ale_handler)
-imsa_mg = MonitoredGuild(878844647173132359, "IMSA", placeholder_ale_handler)
-extreme_e_mg = MonitoredGuild(830080368089890887, "Extreme E", placeholder_ale_handler)
-r_indycar_mg = MonitoredGuild(360079258980319232, "/r/INDYCAR", placeholder_ale_handler)
+r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler)
+of1d_mg = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler)
+nascar_mg = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler)
+ltl_mg = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler)
+red_bull_mg = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", MonitoredGuild.placeholder_ale_handler)
+mclaren_mg = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler)
+r_wec_mg = MonitoredGuild(193548511126487040, "/r/WEC", MonitoredGuild.placeholder_ale_handler)
+imsa_mg = MonitoredGuild(878844647173132359, "IMSA", MonitoredGuild.placeholder_ale_handler)
+extreme_e_mg = MonitoredGuild(830080368089890887, "Extreme E", MonitoredGuild.placeholder_ale_handler)
+r_indycar_mg = MonitoredGuild(360079258980319232, "/r/INDYCAR", MonitoredGuild.placeholder_ale_handler)
 
 # Publish a dict that maps each MonitoredGuild ID to its MonitoredGuild.
 MONITORED_GUILDS: dict[GuildID, MonitoredGuild] = {
     mg_object.id: mg_object
-    for object_name, mg_object in locals().items()
+    for mg_object in locals().values()
     if isinstance(mg_object, MonitoredGuild)
-    and mg_object.audit_log_handler is not placeholder_ale_handler
+    and mg_object.audit_log_handler is not MonitoredGuild.placeholder_ale_handler
 }
 
 lux_dev_ag = AlertGuild(
@@ -177,7 +192,7 @@ sms_ag = AlertGuild(
 # Publish a dict that maps each AlertGuild ID to its AlertGuild.
 ALERT_GUILDS: dict[GuildID, AlertGuild] = {
     ag_object.id: ag_object
-    for object_name, ag_object in locals().items()
+    for ag_object in locals().values()
     if isinstance(ag_object, AlertGuild)
 }
 

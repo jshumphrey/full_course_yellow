@@ -94,15 +94,34 @@ class MBAFunctionality(commands.Cog):
             ) from ex
 
         if ale_handler(entry) is True:
-            alert_embed = await self.create_alert_embed(
+            await self.send_alerts(
                 banned_actor = await self.solidify_actor_abstract(entry._target_id), # pylint: disable = protected-access
                 banning_server_name = entry.guild.name,
                 ban_reason = entry.reason,
-            )
-            await self.send_alert(
                 message_body = "A new permanent ban has been detected!",
-                alert_embed = alert_embed,
             )
+
+    @commands.Cog.listener()
+    async def on_command(self, ctx: discord.ApplicationContext) -> None:
+        """This listener implements custom logging for whenever a Command is invoked."""
+        mba_logger.info(
+            f"{ctx.command.name} invoked by {self.pprint_actor_name(ctx.author)} "
+            f"at {self.get_current_utc_iso_time_str()}"
+        )
+
+    @commands.Cog.listener()
+    async def on_command_error(
+        self,
+        ctx: discord.ApplicationContext,
+        error: commands.CommandError, # pylint: disable = unused-argument
+    ) -> None:
+        """This listener implements custom error handling for exceptions raised during the invocation
+        of a Command. The primary goal is to clean up the exceptions that are printed out to the log."""
+        mba_logger.exception(
+            f"Exception raised during the invocation of {ctx.command.name} "
+            f"by {self.pprint_actor_name(ctx.author)} "
+            f"at {self.get_current_utc_iso_time_str()}"
+        )
 
     async def solidify_actor_abstract(self, actor_abstract: Actor | int | str | None) -> Actor:
         """This takes a "Actor abstract" - a nebulous parameter that might be a fully-fledged Actor,
@@ -125,19 +144,20 @@ class MBAFunctionality(commands.Cog):
 
         return actor
 
-    async def create_alert_embed(
+    def generate_base_alert_embed(
         self,
         banned_actor: Actor,
         banning_server_name: str,
         ban_reason: Optional[str],
         timestamp: datetime.datetime = datetime.datetime.now(),
     ):
-        """This handles the process of creating an alert from a provided ALE."""
+        """This handles the process of creating an alert from a provided ALE.
 
-        mutual_mgs = self.get_mutual_monitored_guilds(banned_actor)
-        mutual_mg_names = "None" if not mutual_mgs else ", ".join(mg.name for mg in mutual_mgs)
+        The embed generated is the "base embed" - i.e., it will not contain
+        any references to roles for a particular server, since we don't yet know
+        which server this alert is being sent to."""
 
-        embed = (
+        base_embed = (
             discord.Embed(
                 type = "rich",
                 timestamp = timestamp,
@@ -149,37 +169,41 @@ class MBAFunctionality(commands.Cog):
             .set_footer(text = f"Banned user's ID: {banned_actor.id}")
             .add_field(name = "Relevant server", value = banning_server_name, inline = False)
             .add_field(name = "Ban reason", value = ban_reason or "", inline = False)
-            .add_field(name = "Motorsport servers with user", value = mutual_mg_names, inline = False)
         )
 
-        return embed
+        return base_embed
 
-    async def send_alert(self, message_body: Optional[str], alert_embed: discord.Embed) -> None:
-        """This handles the process of sending a prepared alert out to the AlertGuilds."""
+    async def send_alerts(
+        self,
+        banned_actor: Actor,
+        banning_server_name: str,
+        ban_reason: Optional[str],
+        message_body: Optional[str],
+    ) -> None:
+        """This handles the process of sending a prepared alert out to ALL configured AlertGuilds."""
+
+        base_embed = self.generate_base_alert_embed(banned_actor, banning_server_name, ban_reason)
+        mutual_mgs = self.get_mutual_monitored_guilds(banned_actor)
 
         for alert_guild in mba_guilds.ALERT_GUILDS.values():
             if (guild := self.bot.get_guild(alert_guild.id)) is None:
-                mba_logger.error(
-                    f"send_alert: Unable to retrieve Guild for {alert_guild.name}! "
-                    f"(Guild ID: {alert_guild.id})"
-                )
-                return
-
+                raise commands.GuildNotFound(str(alert_guild.id))
             if (channel := guild.get_channel(alert_guild.alert_channel_id)) is None:
-                mba_logger.error(
-                    f"send_alert: Unable to retreive alert Channel for {alert_guild.name}! "
-                    f"(Guild ID: {alert_guild.id}; Channel ID: {alert_guild.alert_channel_id})"
-                )
-                return
-
+                raise commands.ChannelNotFound(str(alert_guild.alert_channel_id))
             if not isinstance(channel, discord.TextChannel):
-                mba_logger.error(
-                    f"send_alert: Designated alert Channel for {alert_guild.name} is not a text channel! "
-                    f"(Guild ID: {alert_guild.id}; Channel ID: {alert_guild.alert_channel_id})"
-                )
-                return
+                raise TypeError(f"{alert_guild.alert_channel_id} is not a text channel")
 
-            await channel.send(content = message_body, embed = alert_embed)
+            decorated_body = alert_guild.decorate_message_body(message_body)
+            decorated_embed = (
+                base_embed.copy()
+                .add_field(
+                    name = "Motorsport servers with user",
+                    value = alert_guild.decorate_mutual_guilds(mutual_mgs),
+                    inline = False,
+                )
+            )
+
+            await channel.send(content = decorated_body, embed = decorated_embed)
 
     @commands.slash_command(
         name = "alert",
@@ -209,7 +233,7 @@ class MBAFunctionality(commands.Cog):
         guild_only = True,
         cooldown = None,
     )
-    async def slash_create_and_send_alert(
+    async def slash_send_alerts(
         self,
         ctx: discord.ApplicationContext,
         user_id: int,
@@ -219,23 +243,15 @@ class MBAFunctionality(commands.Cog):
         """Executes the flow to create and send an alert from a slash command.
         Responds to the user via an ephemeral message."""
 
-        embed = await self.create_alert_embed(
+        await self.send_alerts(
             banned_actor = await self.solidify_actor_abstract(user_id),
             banning_server_name = server,
-            ban_reason = reason
-        )
-        await self.send_alert(
-            message_body = f"New alert raised by {self.pprint_actor_name(ctx.user)}!",
-            alert_embed = embed
+            ban_reason = reason,
+            message_body = f"New alert raised by {self.pprint_actor_name(ctx.author)}!",
         )
 
         await ctx.send_response(
             content = "Successfully raised an alert.",
             ephemeral = True,
             delete_after = 10,
-        )
-
-        mba_logger.info(
-            f"slash_create_and_send_alert invoked by {self.pprint_actor_name(ctx.user)} "
-            f"at {self.get_current_utc_iso_time_str()}"
         )

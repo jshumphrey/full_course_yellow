@@ -107,10 +107,10 @@ class MBAFunctionality(commands.Cog):
     async def solidify_actor_abstract(self, actor_abstract: Actor | int | str | None) -> Actor:
         """This takes a "Actor abstract" - a nebulous parameter that might be a fully-fledged Actor,
         or their user ID in integer form, their user ID in string form, or None. The actor abstract is then
-        "solidified" into a real Actor, if possible. If not possible, RuntimeError is raised."""
+        "solidified" into a real Actor, if possible. If not possible, commands.UserNotFound is raised."""
 
         if actor_abstract is None:
-            raise RuntimeError("Attempted to solidify the provided Actor abstract, but it is None!")
+            raise commands.UserNotFound("Attempted to solidify the provided Actor abstract, but it is None!")
 
         if isinstance(actor_abstract, Actor):
             return actor_abstract
@@ -118,7 +118,7 @@ class MBAFunctionality(commands.Cog):
         user_id = int(actor_abstract)
         actor = await self.bot.fetch_user(user_id)
         if actor is None:
-            raise RuntimeError(
+            raise commands.UserNotFound(
                 "Attempted to solidify the provided Actor abstract, "
                 f"but could not find any Discord user with user ID {user_id}!"
             )

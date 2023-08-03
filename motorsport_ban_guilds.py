@@ -22,6 +22,9 @@ class InstalledGuild:
         self.guild_id = guild_id
         self.name = name
 
+    def __str__(self) -> str:
+        return self.name
+
     async def is_bot_installed(self, bot: discord.Bot) -> bool:
         """Assesses whether the provided bot is installed on the guild."""
         return self.guild_id in {guild.id for guild in bot.guilds}
@@ -71,9 +74,6 @@ class MonitoredGuild(InstalledGuild):
         super().__init__(guild_id, name)
         self.audit_log_handler = audit_log_handler
 
-    def __str__(self) -> str:
-        return self.name
-
 
 def true_ale_handler(_: discord.AuditLogEntry) -> bool:
     """Handle AuditLogEntries for servers for which bans are
@@ -105,7 +105,7 @@ def rf1_ale_handler(entry: discord.AuditLogEntry) -> bool:
 # With the class structure set up, define some MonitoredGuild objects for public use.
 lux_dev_mg = MonitoredGuild(1079109375647555695, "Lux's Dev/Testing Server", true_ale_handler)
 r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", rf1_ale_handler)
-# formula_1_mg = MonitoredGuild(142082511902605313, "Formula One", None)
+# of1d_mg = MonitoredGuild(142082511902605313, "Formula One", None)
 # nascar_mg = MonitoredGuild(877239953174691910, "Nascar", None)
 
 # Publish a dict that maps each MonitoredGuild ID to its MonitoredGuild.

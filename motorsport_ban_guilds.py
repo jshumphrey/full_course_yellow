@@ -1,5 +1,5 @@
 """This contains functionality to represent the servers monitored by motorsport_ban_alerts."""
-# pylint: disable = too-few-public-methods, invalid-name
+# pylint: disable = too-few-public-methods, invalid-name, too-many-arguments
 
 from __future__ import annotations
 
@@ -69,15 +69,16 @@ class AlertGuild(InstalledGuild):
         )
 
     def decorate_mutual_guilds(self, mutual_guilds: list[MonitoredGuild]) -> str:
-        pass
+        """"Decorates" the provided list of mutual guilds by transforming the guilds in it into
+        role pings for this AlertGuild's role for that guild, based on guild_notification_roles."""
 
-    async def can_bot_send_alerts(self, bot: discord.Bot) -> bool:
-        """Assesses whether the provided bot has the permissions
-        to send messages to this AlertGuild's alert channel."""
-        return (
-            bot
-            .get_partial_messageable(self.alert_channel_id)
-            .can_send(discord.Message)
+        if self.guild_notification_roles is None:
+            return ", ".join(guild.name for guild in mutual_guilds)
+
+        return ", ".join(
+            guild.name if guild.id not in self.guild_notification_roles
+            else f"<@&{self.guild_notification_roles[guild.id]}>"
+            for guild in mutual_guilds
         )
 
 

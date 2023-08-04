@@ -53,16 +53,9 @@ class MBAFunctionality(commands.Cog):
 
         for alert_guild in mba_guilds.ALERT_GUILDS.values():
             if await alert_guild.is_bot_installed(self.bot) is False:
-                raise RuntimeError(
-                    f"The bot is configured to send alerts to {alert_guild.name}, "
+                raise commands.GuildNotFound(
+                    f"The bot is configured to send alerts to {alert_guild.id}, "
                     "but the bot is not installed in the server!"
-                )
-
-            if await alert_guild.can_bot_send_alerts(self.bot) is False:
-                raise RuntimeError(
-                    f"The bot is configured to send alerts to {alert_guild.name}, "
-                    "but it does not have the appropriate permissions "
-                    "in that server's configured alert channel!"
                 )
 
         mba_logger.info("Startup checks passed and the bot is configured correctly.")
@@ -102,7 +95,7 @@ class MBAFunctionality(commands.Cog):
             )
 
     @commands.Cog.listener()
-    async def on_command(self, ctx: discord.ApplicationContext) -> None:
+    async def on_application_command(self, ctx: discord.ApplicationContext) -> None:
         """This listener implements custom logging for whenever a Command is invoked."""
         mba_logger.info(
             f"{ctx.command.name} invoked by {self.pprint_actor_name(ctx.author)} "
@@ -110,7 +103,7 @@ class MBAFunctionality(commands.Cog):
         )
 
     @commands.Cog.listener()
-    async def on_command_error(
+    async def on_application_command_error(
         self,
         ctx: discord.ApplicationContext,
         error: commands.CommandError, # pylint: disable = unused-argument
@@ -151,11 +144,10 @@ class MBAFunctionality(commands.Cog):
         ban_reason: Optional[str],
         timestamp: datetime.datetime = datetime.datetime.now(),
     ):
-        """This handles the process of creating an alert from a provided ALE.
+        """This handles the process of creating the embed for a "New Alert" message.
 
-        The embed generated is the "base embed" - i.e., it will not contain
-        any references to roles for a particular server, since we don't yet know
-        which server this alert is being sent to."""
+        The embed generated is the "base embed" - i.e., it will not contain any references to roles
+        for a particular server, since we don't yet know which server this alert is being sent to."""
 
         base_embed = (
             discord.Embed(

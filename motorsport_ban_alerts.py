@@ -13,12 +13,15 @@ import logging
 import motorsport_ban_cogs as mba_cogs
 
 
-Actor = discord.User | discord.Member
-
-
 TOKEN_FILENAME = "token.txt"
 INTENTS = discord.Intents.default()
 INTENTS.members = True
+ALLOWED_MENTIONS = discord.AllowedMentions(
+    everyone = False,
+    roles = True,
+    users = False,
+    replied_user = True,
+)
 
 logging.basicConfig(level=logging.INFO)
 mba_logger = logging.getLogger("motorsport_ban_alerts")
@@ -38,11 +41,11 @@ def read_token(token_filename: str) -> str:
 def main():
     """Execute top-level functionality - load the token and start the bot."""
     bot = MBABot(
-        intents=INTENTS,
-        allowed_mentions=discord.AllowedMentions.none(),
+        intents = INTENTS,
+        allowed_mentions = ALLOWED_MENTIONS,
     )
     bot.add_cog(mba_cogs.MBAFunctionality(bot))
-    bot.run(token=read_token(TOKEN_FILENAME))
+    bot.run(token = read_token(TOKEN_FILENAME))
 
 
 if __name__ == "__main__":

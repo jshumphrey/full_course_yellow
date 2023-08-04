@@ -20,14 +20,17 @@ class InstalledGuild:
 
     id: GuildID
     name: str
+    enabled: bool
 
     def __init__(
         self,
         id: GuildID,  # pylint: disable = redefined-builtin
-        name: str
+        name: str,
+        enabled: bool = True,
     ) -> None:
         self.id = id
         self.name = name
+        self.enabled = enabled
 
     def __str__(self) -> str:
         return self.name
@@ -54,8 +57,9 @@ class AlertGuild(InstalledGuild):
         alert_channel_id: ChannelID,
         general_notification_role_id: Optional[RoleID] = None,
         guild_notification_roles: Optional[dict[GuildID, RoleID]] = None,
+        enabled: bool = True,
     ) -> None:
-        super().__init__(id, name)
+        super().__init__(id, name, enabled)
         self.alert_channel_id = alert_channel_id
         self.general_notification_role_id = general_notification_role_id
         self.guild_notification_roles = guild_notification_roles
@@ -97,8 +101,9 @@ class MonitoredGuild(InstalledGuild):
         id: int, # pylint: disable = redefined-builtin
         name: str,
         audit_log_handler: Callable[[discord.AuditLogEntry], bool],
+        enabled: bool = True,
     ) -> None:
-        super().__init__(id, name)
+        super().__init__(id, name, enabled)
         self.audit_log_handler = audit_log_handler
 
     @staticmethod
@@ -144,23 +149,23 @@ def rf1_ale_handler(entry: discord.AuditLogEntry) -> bool:
 # With the class structure set up, define some MonitoredGuild objects for public use.
 lux_dev_mg = MonitoredGuild(1079109375647555695, "Lux's Dev/Testing Server", MonitoredGuild.true_ale_handler)
 
-r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler)
-of1d_mg = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler)
-nascar_mg = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler)
-ltl_mg = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler)
-red_bull_mg = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", MonitoredGuild.placeholder_ale_handler)
-mclaren_mg = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler)
-r_wec_mg = MonitoredGuild(193548511126487040, "/r/WEC", MonitoredGuild.placeholder_ale_handler)
-imsa_mg = MonitoredGuild(878844647173132359, "IMSA", MonitoredGuild.placeholder_ale_handler)
-extreme_e_mg = MonitoredGuild(830080368089890887, "Extreme E", MonitoredGuild.placeholder_ale_handler)
-r_indycar_mg = MonitoredGuild(360079258980319232, "/r/INDYCAR", MonitoredGuild.placeholder_ale_handler)
+r_f1_mg = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler, enabled = False)
+of1d_mg = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler, enabled = False)
+nascar_mg = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
+ltl_mg = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler, enabled = False)
+red_bull_mg = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", MonitoredGuild.placeholder_ale_handler, enabled = False)
+mclaren_mg = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler, enabled = False)
+r_wec_mg = MonitoredGuild(193548511126487040, "/r/WEC", MonitoredGuild.placeholder_ale_handler, enabled = False)
+imsa_mg = MonitoredGuild(878844647173132359, "IMSA", MonitoredGuild.placeholder_ale_handler, enabled = False)
+extreme_e_mg = MonitoredGuild(830080368089890887, "Extreme E", MonitoredGuild.placeholder_ale_handler, enabled = False)
+r_indycar_mg = MonitoredGuild(360079258980319232, "/r/INDYCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
 
 # Publish a dict that maps each MonitoredGuild ID to its MonitoredGuild.
 MONITORED_GUILDS: dict[GuildID, MonitoredGuild] = {
     mg_object.id: mg_object
     for mg_object in locals().values()
     if isinstance(mg_object, MonitoredGuild)
-    and mg_object.audit_log_handler is not MonitoredGuild.placeholder_ale_handler
+    and mg_object.enabled is True
 }
 
 lux_dev_ag = AlertGuild(
@@ -188,6 +193,7 @@ sms_ag = AlertGuild(
         830080368089890887: 1133781212251553883, # Extreme E
         360079258980319232: 1112467709045788692, # /r/IndyCar
     },
+    enabled = False,
 )
 
 # Publish a dict that maps each AlertGuild ID to its AlertGuild.
@@ -195,6 +201,7 @@ ALERT_GUILDS: dict[GuildID, AlertGuild] = {
     ag_object.id: ag_object
     for ag_object in locals().values()
     if isinstance(ag_object, AlertGuild)
+    and ag_object.enabled is True
 }
 
 if __name__ == "__main__":

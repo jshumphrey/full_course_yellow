@@ -51,12 +51,13 @@ class MBAFunctionality(commands.Cog):
 
         If any of these conditions are not fulfilled, we crash out."""
 
-        for alert_guild in mba_guilds.ALERT_GUILDS.values():
-            if await alert_guild.is_bot_installed(self.bot) is False:
-                raise commands.GuildNotFound(
-                    f"The bot is configured to send alerts to {alert_guild.id}, "
-                    "but the bot is not installed in the server!"
-                )
+        #for alert_guild in mba_guilds.ALERT_GUILDS.values():
+        #    if await alert_guild.is_bot_installed(self.bot) is False:
+        #        mba_logger.error(
+        #            f"The bot is configured to send alerts to {alert_guild.id}, "
+        #            "but the bot is not installed in the server!"
+        #        )
+        #        raise commands.GuildNotFound(str(alert_guild.id))
 
         mba_logger.info("Startup checks passed and the bot is configured correctly.")
 
@@ -80,7 +81,7 @@ class MBAFunctionality(commands.Cog):
         try:
             ale_handler = mba_guilds.MONITORED_GUILDS[entry.guild.id].audit_log_handler
 
-        except KeyError as ex:
+        except KeyError as ex: # BUG: We need to not raise this blindly - it could be an AlertGuild!
             raise KeyError(
                 f"Tried to process audit log entry for guild {entry.guild.name} "
                 f"(guild ID {entry.guild.id}), but guild ID not present in MONITORED_GUILDS!"
@@ -110,11 +111,15 @@ class MBAFunctionality(commands.Cog):
     ) -> None:
         """This listener implements custom error handling for exceptions raised during the invocation
         of a Command. The primary goal is to clean up the exceptions that are printed out to the log."""
-        mba_logger.exception(
-            f"Exception raised during the invocation of {ctx.command.name} "
-            f"by {self.pprint_actor_name(ctx.author)} "
-            f"at {self.get_current_utc_iso_time_str()}"
-        )
+
+        try: # We need to intentially re-raise the exception so that the logger can pick up the traceback
+            raise error
+        except commands.CommandError:
+            mba_logger.exception( # This only works inside an exception handler
+                f"Exception raised during the invocation of {ctx.command.name} "
+                f"by {self.pprint_actor_name(ctx.author)} "
+                f"at {self.get_current_utc_iso_time_str()}"
+            )
 
     async def solidify_actor_abstract(self, actor_abstract: Actor | int | str | None) -> Actor:
         """This takes a "Actor abstract" - a nebulous parameter that might be a fully-fledged Actor,

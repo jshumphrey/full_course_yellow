@@ -7,6 +7,7 @@ from discord.ext import commands
 import logging
 from typing import Optional
 
+import motorsport_ban_alerts as mba
 import motorsport_ban_guilds as mba_guilds
 
 
@@ -19,20 +20,8 @@ pycord_logger = logging.getLogger("discord")
 class MBAFunctionality(commands.Cog):
     """This cog implements the majority of the functionality for the Motorsport Ban Alerts bot."""
 
-    def __init__(self, bot: discord.Bot):
+    def __init__(self, bot: mba.MBABot):
         self.bot = bot
-
-    @staticmethod
-    def get_current_utc_iso_time_str() -> str:
-        """This is a shortcut to get a simple datetime string in the form
-        `YYYY-MM-DD HH:MM:SS UTC` for the current UTC date and time."""
-        return datetime.datetime.now(datetime.timezone.utc).strftime(r"%Y-%m-%d %H:%M:%S UTC")
-
-    @staticmethod
-    def pprint_actor_name(actor: Actor) -> str:
-        """This is a quick shortcut to generate a pretty-printed Actor name.
-        This requires an actual Actor; await solidify_actor_abstract if necessary."""
-        return f"{actor.global_name} ({actor.name}#{actor.discriminator})"
 
     @staticmethod
     def get_mutual_monitored_guilds(actor: Actor) -> list[mba_guilds.MonitoredGuild]:
@@ -51,13 +40,13 @@ class MBAFunctionality(commands.Cog):
 
         If any of these conditions are not fulfilled, we crash out."""
 
-        #for alert_guild in mba_guilds.ALERT_GUILDS.values():
-        #    if await alert_guild.is_bot_installed(self.bot) is False:
-        #        mba_logger.error(
-        #            f"The bot is configured to send alerts to {alert_guild.id}, "
-        #            "but the bot is not installed in the server!"
-        #        )
-        #        raise commands.GuildNotFound(str(alert_guild.id))
+        for alert_guild in mba_guilds.ALERT_GUILDS.values():
+            if await alert_guild.is_bot_installed(self.bot) is False:
+                mba_logger.error(
+                    f"The bot is configured to send alerts to {alert_guild.id}, "
+                    "but the bot is not installed in the server!"
+                )
+                raise commands.GuildNotFound(str(alert_guild.id))
 
         mba_logger.info("Startup checks passed and the bot is configured correctly.")
 
@@ -89,58 +78,11 @@ class MBAFunctionality(commands.Cog):
 
         if ale_handler(entry) is True:
             await self.send_alerts(
-                banned_actor = await self.solidify_actor_abstract(entry._target_id), # pylint: disable = protected-access
+                banned_actor = await self.bot.solidify_actor_abstract(entry._target_id), # pylint: disable = protected-access
                 banning_server_name = entry.guild.name,
                 ban_reason = entry.reason,
                 message_body = "A new permanent ban has been detected!",
             )
-
-    @commands.Cog.listener()
-    async def on_application_command(self, ctx: discord.ApplicationContext) -> None:
-        """This listener implements custom logging for whenever a Command is invoked."""
-        mba_logger.info(
-            f"{ctx.command.name} invoked by {self.pprint_actor_name(ctx.author)} "
-            f"at {self.get_current_utc_iso_time_str()}"
-        )
-
-    @commands.Cog.listener()
-    async def on_application_command_error(
-        self,
-        ctx: discord.ApplicationContext,
-        error: commands.CommandError, # pylint: disable = unused-argument
-    ) -> None:
-        """This listener implements custom error handling for exceptions raised during the invocation
-        of a Command. The primary goal is to clean up the exceptions that are printed out to the log."""
-
-        try: # We need to intentially re-raise the exception so that the logger can pick up the traceback
-            raise error
-        except commands.CommandError:
-            mba_logger.exception( # This only works inside an exception handler
-                f"Exception raised during the invocation of {ctx.command.name} "
-                f"by {self.pprint_actor_name(ctx.author)} "
-                f"at {self.get_current_utc_iso_time_str()}"
-            )
-
-    async def solidify_actor_abstract(self, actor_abstract: Actor | int | str | None) -> Actor:
-        """This takes a "Actor abstract" - a nebulous parameter that might be a fully-fledged Actor,
-        or their user ID in integer form, their user ID in string form, or None. The actor abstract is then
-        "solidified" into a real Actor, if possible. If not possible, commands.UserNotFound is raised."""
-
-        if actor_abstract is None:
-            raise commands.UserNotFound("Attempted to solidify the provided Actor abstract, but it is None!")
-
-        if isinstance(actor_abstract, Actor):
-            return actor_abstract
-
-        user_id = int(actor_abstract)
-        actor = await self.bot.fetch_user(user_id)
-        if actor is None:
-            raise commands.UserNotFound(
-                "Attempted to solidify the provided Actor abstract, "
-                f"but could not find any Discord user with user ID {user_id}!"
-            )
-
-        return actor
 
     def generate_base_alert_embed(
         self,
@@ -160,7 +102,7 @@ class MBAFunctionality(commands.Cog):
                 timestamp = timestamp,
             )
             .set_author(
-                name = self.pprint_actor_name(banned_actor),
+                name = self.bot.pprint_actor_name(banned_actor),
                 icon_url = banned_actor.display_avatar.url,
             )
             .set_footer(text = f"Banned user's ID: {banned_actor.id}")
@@ -241,10 +183,10 @@ class MBAFunctionality(commands.Cog):
         Responds to the user via an ephemeral message."""
 
         await self.send_alerts(
-            banned_actor = await self.solidify_actor_abstract(user_id),
+            banned_actor = await self.bot.solidify_actor_abstract(user_id),
             banning_server_name = server,
             ban_reason = reason,
-            message_body = f"New alert raised by {self.pprint_actor_name(ctx.author)}!",
+            message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
         )
 
         await ctx.send_response(

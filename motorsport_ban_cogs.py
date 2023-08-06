@@ -84,6 +84,14 @@ class MBAFunctionality(commands.Cog):
                 message_body = "A new permanent ban has been detected!",
             )
 
+    async def fetch_most_recent_bans(
+        self,
+        guild: discord.Guild,
+        max_bans: int = 5,
+    ) -> list[discord.AuditLogEntry]:
+        """This wraps the process of retrieving the most recent Audit Log events for bans in the server."""
+        return await guild.audit_logs(action = discord.AuditLogAction.ban, limit = max_bans).flatten()
+
     def generate_base_alert_embed(
         self,
         banned_actor: Actor,

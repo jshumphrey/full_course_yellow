@@ -11,6 +11,7 @@ Snowflake = int
 ChannelID = Snowflake
 GuildID = Snowflake
 RoleID = Snowflake
+ActorID = Snowflake
 
 
 class InstalledGuild:
@@ -21,6 +22,7 @@ class InstalledGuild:
     id: GuildID
     name: str
     enabled: bool
+    guild: discord.Guild  # This will get set during bot.on_ready
 
     def __init__(
         self,
@@ -35,9 +37,10 @@ class InstalledGuild:
     def __str__(self) -> str:
         return self.name
 
-    async def is_bot_installed(self, bot: discord.Bot) -> bool:
-        """Assesses whether the provided bot is installed on the guild."""
-        return self.id in {guild.id for guild in bot.guilds}
+    @property
+    def roles_dict(self) -> dict[RoleID, discord.Role]:
+        """A dict of {Role ID: Role} for all roles in the guild, making it O(1) to look up a Role by ID."""
+        return {role.id: role for role in self.guild.roles}
 
 
 class AlertGuild(InstalledGuild):
@@ -46,8 +49,11 @@ class AlertGuild(InstalledGuild):
 
     id: GuildID
     name: str
+    enabled: bool
+    guild: discord.Guild
 
     alert_channel_id: ChannelID
+    general_notification_role_id: Optional[RoleID]
     guild_notification_roles: Optional[dict[GuildID, RoleID]]
 
     def __init__(
@@ -68,7 +74,7 @@ class AlertGuild(InstalledGuild):
         """"Decorates" the provided message body by prepending this AlertGuild's
         general-notification Role, if one has been defined for this AlertGuild."""
         return (
-            message_body or "" if self.general_notification_role_id is None
+            (message_body or "") if self.general_notification_role_id is None
             else f"<@&{self.general_notification_role_id}> {message_body or ''}"
         )
 
@@ -93,6 +99,8 @@ class MonitoredGuild(InstalledGuild):
 
     id: GuildID
     name: str
+    enabled: bool
+    guild: discord.Guild
 
     audit_log_handler: Callable[[discord.AuditLogEntry], bool]
 

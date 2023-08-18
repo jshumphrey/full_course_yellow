@@ -22,6 +22,7 @@ Actor = discord.User | discord.Member
 TOKEN_FILENAME = "token.txt"
 INTENTS = discord.Intents.default()
 INTENTS.members = True
+MEMBER_CACHE_FLAGS = discord.MemberCacheFlags.none()
 ALLOWED_MENTIONS = discord.AllowedMentions(
     everyone = False,
     roles = True,
@@ -44,9 +45,37 @@ class MBABot(discord.Bot):
         return datetime.datetime.now(datetime.timezone.utc).strftime(r"%Y-%m-%d %H:%M:%S UTC")
 
     @staticmethod
+    def pprint_timedelta_from_timestamp(timestamp: datetime.datetime) -> str:
+        """This is a shortcut to take in a datetime that represents a time in the past,
+        and quickly print out "H hours, M minutes ago". An attempt is made to ensure
+        timezone awareness."""
+
+        current_datetime = datetime.datetime.now(datetime.timezone.utc)
+
+        if timestamp.tzinfo is None or timestamp.tzinfo.utcoffset(timestamp) is None:
+            # The timestamp is timezone-naive
+            timedelta = current_datetime - timestamp.replace(tzinfo = datetime.timezone.utc)
+        else:
+            # The timestamp is timezone-aware
+            timedelta = current_datetime - timestamp
+
+        days = timedelta.days
+        hours = timedelta.seconds // 3600
+        minutes = (timedelta.seconds % 3600) // 60
+
+        return ", ".join([
+            f"{days} days" if days > 0 else "",
+            f"{hours} hours" if hours > 0 else "",
+            f"{minutes} minutes" if minutes > 0 else "",
+        ]) + " ago"
+
+    @staticmethod
     def pprint_actor_name(actor: Actor) -> str:
         """This is a quick shortcut to generate a pretty-printed Actor name.
         This requires an actual Actor; await solidify_actor_abstract if necessary."""
+        discord_username = actor.name if actor.discriminator == "0" else f"{actor.name}#{actor.discriminator}"
+        if actor.global_name is None or actor.global_name == discord_username:
+            return discord_username
         return f"{actor.global_name} ({actor.name}#{actor.discriminator})"
 
     async def solidify_actor_abstract(self, actor_abstract: Actor | int | str | None) -> Actor:
@@ -132,6 +161,7 @@ def main():
     """Execute top-level functionality - load the token and start the bot."""
     bot = MBABot(
         intents = INTENTS,
+        member_cache_flags = MEMBER_CACHE_FLAGS,
         allowed_mentions = ALLOWED_MENTIONS,
     )
     bot.add_cog(mba_cogs.MBAFunctionality(bot))

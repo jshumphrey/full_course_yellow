@@ -112,7 +112,7 @@ class MBABot(discord.Bot):
         if (ex := sys.exception()) is None:
             mba_logger.error(
                 f"on_error was called during the execution of {event} "
-                f"at {datetime.datetime.now(datetime.timezone.utc)}, "
+                f"at {self.get_current_utc_iso_time_str()}, "
                 "but no exception was raised."
             )
             return
@@ -122,7 +122,7 @@ class MBABot(discord.Bot):
         except Exception:  # pylint: disable = broad-exception-caught
             mba_logger.exception( # This only works inside an exception handler
                 f"Exception raised during the handling of {event} "
-                f"at {datetime.datetime.now(datetime.timezone.utc)}: "
+                f"at {self.get_current_utc_iso_time_str()}: "
             )
 
     async def on_application_command_error(

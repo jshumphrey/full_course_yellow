@@ -279,6 +279,7 @@ class MBAFunctionality(commands.Cog):
                     "Please don't ping a bunch of roles just to make a joke."
                 ),
                 ephemeral = True,
+                delete_after = 30,
             )
             mba_logger.info(f"Declining to create alert against User ID {user_id} because they are a moderator.")
 

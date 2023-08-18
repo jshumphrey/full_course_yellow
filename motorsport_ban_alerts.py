@@ -107,13 +107,12 @@ class MBABot(discord.Bot):
     ) -> None:
         """This listener implements custom error handling for exceptions raised during other listeners.
         The primary goal is to clean up the exceptions that are printed out to the log.
-
-        This function will be called from inside an exception handler, so the bare `raise` statement
-        will successfully pick up the exception. (We hope.)"""
+        This function will be called from inside an exception handler, thus the call to sys.exception."""
 
         if (ex := sys.exception()) is None:
             mba_logger.error(
-                f"on_error was called during the execution of {event} at time, "
+                f"on_error was called during the execution of {event} "
+                f"at {datetime.datetime.now(datetime.timezone.utc)}, "
                 "but no exception was raised."
             )
             return
@@ -123,7 +122,7 @@ class MBABot(discord.Bot):
         except Exception:  # pylint: disable = broad-exception-caught
             mba_logger.exception( # This only works inside an exception handler
                 f"Exception raised during the handling of {event} "
-                f"at time"
+                f"at {datetime.datetime.now(datetime.timezone.utc)}: "
             )
 
     async def on_application_command_error(

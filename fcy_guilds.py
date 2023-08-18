@@ -1,4 +1,4 @@
-"""This contains functionality to represent the servers monitored by motorsport_ban_alerts."""
+"""This contains functionality to represent the servers monitored by Full Course Yellow."""
 # pylint: disable = too-few-public-methods, invalid-name, too-many-arguments
 
 from __future__ import annotations

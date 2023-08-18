@@ -1,11 +1,8 @@
-"""This bot monitors various motorsport Discord servers for new instances
-where a user is banned from the server, or other critera as specified
-for that server.
+"""This bot monitors various motorsport Discord servers for new instances where a user is banned from the server,
+or other critera as specified for that server.
 
-When a new ban is detected, a message is sent to the "Staff of Motorsport
-Discords" server, alerting all mod staff of the new ban, and providing
-information about whether the newly-banned user is present in any of the
-other servers."""
+When a new ban is detected, a message is sent to the "Staff of Motorsport Discords" server, alerting all mod staff
+of the new ban, and providing information about whether the newly-banned user is present in any of the other servers."""
 
 import datetime
 import discord  # This uses pycord, not discord.py
@@ -13,7 +10,7 @@ from discord.ext import commands
 import logging
 import sys
 
-import motorsport_ban_cogs as mba_cogs
+import fcy_cogs
 
 
 Actor = discord.User | discord.Member
@@ -31,12 +28,12 @@ ALLOWED_MENTIONS = discord.AllowedMentions(
 )
 
 logging.basicConfig(level=logging.INFO)
-mba_logger = logging.getLogger("motorsport_ban_alerts")
+fcy_logger = logging.getLogger("full_course_yellow")
 pycord_logger = logging.getLogger("discord")
 
 
-class MBABot(discord.Bot):
-    """This subclass of Bot defines the Motorsport Ban Alerts bot."""
+class FCYBot(discord.Bot):
+    """This subclass of Bot defines the Full Course Yellow bot."""
 
     @staticmethod
     def get_current_utc_iso_time_str() -> str:
@@ -110,7 +107,7 @@ class MBABot(discord.Bot):
         This function will be called from inside an exception handler, thus the call to sys.exception."""
 
         if (ex := sys.exception()) is None:
-            mba_logger.error(
+            fcy_logger.error(
                 f"on_error was called during the execution of {event} "
                 f"at {self.get_current_utc_iso_time_str()}, "
                 "but no exception was raised."
@@ -120,7 +117,7 @@ class MBABot(discord.Bot):
         try:  # We need to intentially re-raise the exception so that the logger can pick up the traceback
             raise ex
         except Exception:  # pylint: disable = broad-exception-caught
-            mba_logger.exception( # This only works inside an exception handler
+            fcy_logger.exception( # This only works inside an exception handler
                 f"Exception raised during the handling of {event} "
                 f"at {self.get_current_utc_iso_time_str()}: "
             )
@@ -136,7 +133,7 @@ class MBABot(discord.Bot):
         try: # We need to intentially re-raise the exception so that the logger can pick up the traceback
             raise exception
         except commands.CommandError:
-            mba_logger.exception( # This only works inside an exception handler
+            fcy_logger.exception( # This only works inside an exception handler
                 f"Exception raised during the invocation of {context.command.name} "
                 f"by {self.pprint_actor_name(context.author)} "
                 f"at {self.get_current_utc_iso_time_str()}"
@@ -144,7 +141,7 @@ class MBABot(discord.Bot):
 
     async def on_application_command(self, ctx: discord.ApplicationContext) -> None:
         """This listener implements custom logging for whenever a Command is invoked."""
-        mba_logger.info(
+        fcy_logger.info(
             f"{ctx.command.name} invoked by {self.pprint_actor_name(ctx.author)} "
             f"at {self.get_current_utc_iso_time_str()}"
         )
@@ -158,12 +155,12 @@ def read_token(token_filename: str) -> str:
 
 def main():
     """Execute top-level functionality - load the token and start the bot."""
-    bot = MBABot(
+    bot = FCYBot(
         intents = INTENTS,
         member_cache_flags = MEMBER_CACHE_FLAGS,
         allowed_mentions = ALLOWED_MENTIONS,
     )
-    bot.add_cog(mba_cogs.MBAFunctionality(bot))
+    bot.add_cog(fcy_cogs.FCYFunctionality(bot))
     bot.run(token = read_token(TOKEN_FILENAME))
 
 

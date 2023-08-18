@@ -1,4 +1,4 @@
-"""This file defines cogs for the Motorsport Ban Alerts bot, providing functionality
+"""This file defines cogs for the Full Course Yellow bot, providing functionality
 that can be imported into the scope of a pycord Bot."""
 # pylint: disable = logging-not-lazy
 
@@ -8,8 +8,8 @@ from discord.ext import commands
 import logging
 from typing import Optional
 
-import motorsport_ban_alerts as mba
-import motorsport_ban_guilds as mba_guilds
+import full_course_yellow as fcy
+import fcy_guilds
 
 
 Snowflake = int
@@ -54,24 +54,24 @@ class NewAlertModal(discord.ui.Modal):
         pass
 
 
-class MBAFunctionality(commands.Cog):
+class FCYFunctionality(commands.Cog):
     """This cog implements the majority of the functionality for the Motorsport Ban Alerts bot."""
 
     alert_guild_members: set[str]
 
-    def __init__(self, bot: mba.MBABot):
+    def __init__(self, bot: fcy.FCYBot):
         self.bot = bot
         self.alert_guild_members = set()
 
     @staticmethod
-    def get_mutual_monitored_guilds(actor: Actor) -> list[mba_guilds.MonitoredGuild]:
+    def get_mutual_monitored_guilds(actor: Actor) -> list[fcy_guilds.MonitoredGuild]:
         """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor."""
-        return [mg for mg in mba_guilds.MONITORED_GUILDS.values() if mg.id in {g.id for g in actor.mutual_guilds}]
+        return [mg for mg in fcy_guilds.MONITORED_GUILDS.values() if mg.id in {g.id for g in actor.mutual_guilds}]
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         """When a new member joins, if the joined guild is an AlertGuild, update alert_guild_members."""
-        if member.guild.id in mba_guilds.ALERT_GUILDS:
+        if member.guild.id in fcy_guilds.ALERT_GUILDS:
             self.alert_guild_members.add(str(member.id))
 
     @commands.Cog.listener()
@@ -80,7 +80,7 @@ class MBAFunctionality(commands.Cog):
         This needs to be the RAW member remove event because the normal member remove event
         depends on the member cache, which we're not using."""
 
-        if payload.guild_id in mba_guilds.ALERT_GUILDS:
+        if payload.guild_id in fcy_guilds.ALERT_GUILDS:
             self.alert_guild_members.remove(payload.user.id) # type: ignore - why isn't this working?
 
     @commands.Cog.listener()
@@ -105,7 +105,7 @@ class MBAFunctionality(commands.Cog):
         mba_logger.debug(f"{entry.__dict__}")
 
         try:
-            ale_handler = mba_guilds.MONITORED_GUILDS[entry.guild.id].audit_log_handler
+            ale_handler = fcy_guilds.MONITORED_GUILDS[entry.guild.id].audit_log_handler
 
         except KeyError as ex: # BUG: We need to not raise this blindly - it could be an AlertGuild!
             raise KeyError(
@@ -125,7 +125,7 @@ class MBAFunctionality(commands.Cog):
         """This executes a number of checks on the bot's InstalledGuilds, and attempts to populate
         InstalledGuild.guild. This is run as part of the on_ready process."""
 
-        for installed_guild in list(mba_guilds.MONITORED_GUILDS.values()) + list(mba_guilds.ALERT_GUILDS.values()):
+        for installed_guild in list(fcy_guilds.MONITORED_GUILDS.values()) + list(fcy_guilds.ALERT_GUILDS.values()):
             if installed_guild.id not in {guild.id for guild in self.bot.guilds}:
                 mba_logger.error(
                     f"The bot is configured for Guild ID {installed_guild.id}, "
@@ -148,7 +148,7 @@ class MBAFunctionality(commands.Cog):
         """This process runs during startup (in on_ready) to populate self.alert_guild_members, a type of
         "limited member cache" that only tracks the members present in the configured AlertGuilds."""
 
-        for alert_guild in mba_guilds.ALERT_GUILDS.values():
+        for alert_guild in fcy_guilds.ALERT_GUILDS.values():
             async for member in alert_guild.guild.fetch_members():
                 self.alert_guild_members.add(str(member.id))
 
@@ -212,7 +212,7 @@ class MBAFunctionality(commands.Cog):
         base_embed = self.generate_base_alert_embed(banned_actor, banning_server_name, ban_reason)
         mutual_mgs = self.get_mutual_monitored_guilds(banned_actor)
 
-        for alert_guild in mba_guilds.ALERT_GUILDS.values():
+        for alert_guild in fcy_guilds.ALERT_GUILDS.values():
             if (guild := self.bot.get_guild(alert_guild.id)) is None:
                 raise commands.GuildNotFound(str(alert_guild.id))
             if (channel := guild.get_channel(alert_guild.alert_channel_id)) is None:
@@ -247,7 +247,7 @@ class MBAFunctionality(commands.Cog):
                 description = "The Discord server raising the alert",
                 input_type = str,
                 required = True,
-                choices = [mg.name for mg in mba_guilds.MONITORED_GUILDS.values()],
+                choices = [mg.name for mg in fcy_guilds.MONITORED_GUILDS.values()],
             ),
             discord.Option( # pylint: disable = no-member
                 name = "reason",
@@ -256,7 +256,7 @@ class MBAFunctionality(commands.Cog):
                 required = False,
             ),
         ],
-        ids = list(mba_guilds.ALERT_GUILDS.keys()),
+        ids = list(fcy_guilds.ALERT_GUILDS.keys()),
         guild_only = True,
         cooldown = None,
     )

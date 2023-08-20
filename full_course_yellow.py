@@ -12,9 +12,11 @@ import sys
 
 import fcy_cogs
 
-
 Actor = discord.User | discord.Member
 
+logging.basicConfig(level=logging.INFO)
+fcy_logger = logging.getLogger("full_course_yellow")
+pycord_logger = logging.getLogger("discord")
 
 TOKEN_FILENAME = "token.txt"
 INTENTS = discord.Intents.default()
@@ -26,10 +28,6 @@ ALLOWED_MENTIONS = discord.AllowedMentions(
     users = False,
     replied_user = True,
 )
-
-logging.basicConfig(level=logging.INFO)
-fcy_logger = logging.getLogger("full_course_yellow")
-pycord_logger = logging.getLogger("discord")
 
 
 class FCYBot(discord.Bot):

@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import discord
+import logging
 import typing
 from typing import Callable, Optional
 
@@ -12,6 +13,10 @@ ChannelID = Snowflake
 GuildID = Snowflake
 RoleID = Snowflake
 ActorID = Snowflake
+
+logging.basicConfig(level=logging.INFO)
+mba_logger = logging.getLogger("motorsport_ban_alerts")
+pycord_logger = logging.getLogger("discord")
 
 
 class InstalledGuild:
@@ -113,6 +118,9 @@ class MonitoredGuild(InstalledGuild):
     ) -> None:
         super().__init__(id, name, enabled)
         self.audit_log_handler = audit_log_handler
+
+        if self.enabled and self.audit_log_handler is self.placeholder_ale_handler:
+            mba_logger.warning(f"MonitoredGuild {self.name} is enabled, but its audit log handler is a placeholder!")
 
     @staticmethod
     def true_ale_handler(_: discord.AuditLogEntry) -> bool:

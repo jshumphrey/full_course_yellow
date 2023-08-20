@@ -11,7 +11,6 @@ from typing import Optional
 import full_course_yellow as fcy
 import fcy_guilds
 
-
 Snowflake = int
 ChannelID = Snowflake
 GuildID = Snowflake
@@ -19,10 +18,10 @@ RoleID = Snowflake
 ActorID = Snowflake
 Actor = discord.User | discord.Member
 
-
 logging.basicConfig(level=logging.INFO)
 mba_logger = logging.getLogger("motorsport_ban_alerts")
 pycord_logger = logging.getLogger("discord")
+
 
 class ServerSelectView(discord.ui.View):
     pass

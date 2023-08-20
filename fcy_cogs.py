@@ -6,25 +6,18 @@ import datetime
 import discord  # This uses pycord, not discord.py
 from discord.ext import commands
 import logging
+import typing
 from typing import Optional
 
 import full_course_yellow as fcy
 import fcy_guilds
-
-Snowflake = int
-ChannelID = Snowflake
-GuildID = Snowflake
-RoleID = Snowflake
-ActorID = Snowflake
-Actor = discord.User | discord.Member
+from fcy_constants import MONITORED_GUILDS, ALERT_GUILDS, TESTING_USER_IDS
+from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
 logging.basicConfig(level=logging.INFO)
-mba_logger = logging.getLogger("motorsport_ban_alerts")
+fcy_logger = logging.getLogger("full_course_yellow")
 pycord_logger = logging.getLogger("discord")
 
-
-class ServerSelectView(discord.ui.View):
-    pass
 
 class NewAlertModal(discord.ui.Modal):
     """This Modal captures information for a new ban."""
@@ -53,8 +46,24 @@ class NewAlertModal(discord.ui.Modal):
         pass
 
 
+def autocomplete_servers(ctx: discord.AutocompleteContext) -> list[str]:
+    """Provide an autocomplete handler for the `server` option of the `alert` slash command.
+    The goal is to provide the list of server names that the user can legally raise an alert for,
+    based on the roles that the user has in the AlertGuild in which the command was invoked."""
+
+    invoking_member = typing.cast(discord.Member, ctx.interaction.user)
+    invoking_guild = ctx.interaction.guild
+    if invoking_guild is None or invoking_guild.id not in ALERT_GUILDS:
+        raise commands.GuildNotFound(str(invoking_guild.id) if invoking_guild else "[None]")
+
+    return [
+        role.name for role in invoking_member.roles
+        if role.id in ALERT_GUILDS[invoking_guild.id].guild_notification_roles.values()
+    ]
+
+
 class FCYFunctionality(commands.Cog):
-    """This cog implements the majority of the functionality for the Motorsport Ban Alerts bot."""
+    """This cog implements the majority of the functionality for the Full Course Yellow bot."""
 
     alert_guild_members: set[str]
 
@@ -65,12 +74,12 @@ class FCYFunctionality(commands.Cog):
     @staticmethod
     def get_mutual_monitored_guilds(actor: Actor) -> list[fcy_guilds.MonitoredGuild]:
         """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor."""
-        return [mg for mg in fcy_guilds.MONITORED_GUILDS.values() if mg.id in {g.id for g in actor.mutual_guilds}]
+        return [mg for mg in MONITORED_GUILDS.values() if mg.id in {g.id for g in actor.mutual_guilds}]
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         """When a new member joins, if the joined guild is an AlertGuild, update alert_guild_members."""
-        if member.guild.id in fcy_guilds.ALERT_GUILDS:
+        if member.guild.id in ALERT_GUILDS:
             self.alert_guild_members.add(str(member.id))
 
     @commands.Cog.listener()
@@ -79,7 +88,7 @@ class FCYFunctionality(commands.Cog):
         This needs to be the RAW member remove event because the normal member remove event
         depends on the member cache, which we're not using."""
 
-        if payload.guild_id in fcy_guilds.ALERT_GUILDS:
+        if payload.guild_id in ALERT_GUILDS:
             self.alert_guild_members.remove(payload.user.id) # type: ignore - why isn't this working?
 
     @commands.Cog.listener()
@@ -87,7 +96,7 @@ class FCYFunctionality(commands.Cog):
         """Execute a number of tasks that need to happen at the bot's startup."""
         self.check_populate_installed_guilds()
         await self.populate_alert_guild_members()
-        mba_logger.info("MBAFunctionality.on_ready has completed successfully.")
+        fcy_logger.info("FCYFunctionality.on_ready has completed successfully.")
 
     @commands.Cog.listener()
     async def on_audit_log_entry(self, entry: discord.AuditLogEntry) -> None:
@@ -101,10 +110,10 @@ class FCYFunctionality(commands.Cog):
         if entry.action != discord.AuditLogAction.ban:
             return
 
-        mba_logger.debug(f"{entry.__dict__}")
+        fcy_logger.debug(f"{entry.__dict__}")
 
         try:
-            ale_handler = fcy_guilds.MONITORED_GUILDS[entry.guild.id].audit_log_handler
+            ale_handler = MONITORED_GUILDS[entry.guild.id].audit_log_handler
 
         except KeyError as ex: # BUG: We need to not raise this blindly - it could be an AlertGuild!
             raise KeyError(
@@ -124,16 +133,16 @@ class FCYFunctionality(commands.Cog):
         """This executes a number of checks on the bot's InstalledGuilds, and attempts to populate
         InstalledGuild.guild. This is run as part of the on_ready process."""
 
-        for installed_guild in list(fcy_guilds.MONITORED_GUILDS.values()) + list(fcy_guilds.ALERT_GUILDS.values()):
+        for installed_guild in list(MONITORED_GUILDS.values()) + list(ALERT_GUILDS.values()):
             if installed_guild.id not in {guild.id for guild in self.bot.guilds}:
-                mba_logger.error(
+                fcy_logger.error(
                     f"The bot is configured for Guild ID {installed_guild.id}, "
                     "but the bot is not installed in that Guild!"
                 )
                 raise commands.GuildNotFound(str(installed_guild.id))
 
             if (guild := self.bot.get_guild(installed_guild.id)) is None:
-                mba_logger.error(
+                fcy_logger.error(
                     f"Tried to set InstalledGuild.guild for Guild ID {installed_guild.id}, "
                     "but was unable to retrieve the Guild object from Discord!"
                 )
@@ -141,17 +150,17 @@ class FCYFunctionality(commands.Cog):
 
             installed_guild.guild = guild
 
-        mba_logger.info("All InstalledGuilds detected successfully. Populated self.guild for all Installed Guilds.")
+        fcy_logger.info("All InstalledGuilds detected successfully. Populated self.guild for all Installed Guilds.")
 
     async def populate_alert_guild_members(self) -> None:
         """This process runs during startup (in on_ready) to populate self.alert_guild_members, a type of
         "limited member cache" that only tracks the members present in the configured AlertGuilds."""
 
-        for alert_guild in fcy_guilds.ALERT_GUILDS.values():
+        for alert_guild in ALERT_GUILDS.values():
             async for member in alert_guild.guild.fetch_members():
                 self.alert_guild_members.add(str(member.id))
 
-        mba_logger.info("Populated MBAFunctionality.alert_guild_members.")
+        fcy_logger.info("Populated FCYFunctionality.alert_guild_members.")
 
     async def fetch_most_recent_bans(
         self,
@@ -211,7 +220,7 @@ class FCYFunctionality(commands.Cog):
         base_embed = self.generate_base_alert_embed(banned_actor, banning_server_name, ban_reason)
         mutual_mgs = self.get_mutual_monitored_guilds(banned_actor)
 
-        for alert_guild in fcy_guilds.ALERT_GUILDS.values():
+        for alert_guild in ALERT_GUILDS.values():
             if (guild := self.bot.get_guild(alert_guild.id)) is None:
                 raise commands.GuildNotFound(str(alert_guild.id))
             if (channel := guild.get_channel(alert_guild.alert_channel_id)) is None:
@@ -246,7 +255,7 @@ class FCYFunctionality(commands.Cog):
                 description = "The Discord server raising the alert",
                 input_type = str,
                 required = True,
-                choices = [mg.name for mg in fcy_guilds.MONITORED_GUILDS.values()],
+                choices = [mg.name for mg in MONITORED_GUILDS.values()],
             ),
             discord.Option( # pylint: disable = no-member
                 name = "reason",
@@ -255,7 +264,7 @@ class FCYFunctionality(commands.Cog):
                 required = False,
             ),
         ],
-        ids = list(fcy_guilds.ALERT_GUILDS.keys()),
+        ids = list(ALERT_GUILDS.keys()),
         guild_only = True,
         cooldown = None,
     )
@@ -271,7 +280,7 @@ class FCYFunctionality(commands.Cog):
 
         # Check to make sure the user isn't a moderator.
         # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
-        if str(user_id) in self.alert_guild_members:
+        if str(user_id) not in TESTING_USER_IDS and str(user_id) in self.alert_guild_members:
             await ctx.send_response(
                 content = (
                     "The provided user ID belongs to a motorsport-server moderator.\n"
@@ -280,7 +289,7 @@ class FCYFunctionality(commands.Cog):
                 ephemeral = True,
                 delete_after = 30,
             )
-            mba_logger.info(f"Declining to create alert against User ID {user_id} because they are a moderator.")
+            fcy_logger.info(f"Declining to create alert against User ID {user_id} because they are a moderator.")
 
         else:
             await self.send_alerts(

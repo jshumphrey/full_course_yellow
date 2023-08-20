@@ -11,8 +11,7 @@ import logging
 import sys
 
 import fcy_cogs
-
-Actor = discord.User | discord.Member
+from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
 logging.basicConfig(level=logging.INFO)
 fcy_logger = logging.getLogger("full_course_yellow")
@@ -147,7 +146,7 @@ class FCYBot(discord.Bot):
 
 def read_token(token_filename: str) -> str:
     """Load the bot's token from the file."""
-    with open(token_filename, "r", encoding="utf-8") as infile:
+    with open(token_filename, "r", encoding = "utf-8") as infile:
         return infile.read().strip()
 
 

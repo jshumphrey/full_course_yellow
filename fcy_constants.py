@@ -3,13 +3,13 @@
 from fcy_guilds import MonitoredGuild, AlertGuild
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
-FULL_COURSE_YELLOW_USER_ID = 1105933971264647168
-LUX_USER_ID = 145582654857805825
-LUX_TESTING_USER_ID = 1086293154304634910
+FULL_COURSE_YELLOW_USER_ID = "1105933971264647168"
+LUX_USER_ID = "145582654857805825"
+LUX_TESTING_USER_ID = "1086293154304634910"
 
 TESTING_USER_IDS = {LUX_TESTING_USER_ID}
 
-LUX_DEV_MG = MonitoredGuild(1079109375647555695, "Lux's Dev/Testing Server", MonitoredGuild.true_ale_handler)
+#LUX_DEV_MG = MonitoredGuild(1079109375647555695, "Lux's Dev/Testing Server", MonitoredGuild.true_ale_handler)
 
 R_F1_MG = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler, enabled = False)
 OF1D_MG = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler, enabled = False)
@@ -37,6 +37,7 @@ LUX_DEV_AG = AlertGuild(
     general_notification_role_id = 1136730925481340968,
     guild_notification_roles = {
         1079109375647555695: 1136731212828901397, # Lux's Dev / Testing Server
+        177387572505346048: 1143326383955783783, # /r/formula1
     },
 )
 SMS_AG = AlertGuild(

@@ -83,8 +83,8 @@ class AlertGuild(InstalledGuild):
         """"Decorates" the provided list of mutual guilds by transforming the guilds in it into
         role pings for this AlertGuild's role for that guild, based on guild_notification_roles."""
 
-        if self.guild_notification_roles is None:
-            return ", ".join(guild.name for guild in mutual_guilds)
+        if not mutual_guilds:
+            return "[Not found in any monitored server]"
 
         return ", ".join(
             guild.name if guild.id not in self.guild_notification_roles

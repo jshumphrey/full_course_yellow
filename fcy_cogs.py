@@ -19,49 +19,6 @@ fcy_logger = logging.getLogger("full_course_yellow")
 pycord_logger = logging.getLogger("discord")
 
 
-class NewAlertModal(discord.ui.Modal):
-    """This Modal captures information for a new ban."""
-
-    def __init__(
-        self,
-        *args,
-        **kwargs
-    ) -> None:
-        super().__init__(*args, **kwargs)
-
-        self.add_item(discord.ui.InputText(
-            label = "Banned User's ID",
-            placeholder = "The Discord User ID of the user to create the alert for.",
-            style = discord.InputTextStyle.short,
-            required = True,
-        ))
-        self.add_item(discord.ui.InputText(
-            label = "Reason for the Alert",
-            placeholder = "The reason for raising an Alert for this user.",
-            style = discord.InputTextStyle.long,
-            required = False,
-        ))
-
-    async def callback(self, interaction: discord.Interaction):
-        pass
-
-
-def autocomplete_servers(ctx: discord.AutocompleteContext) -> list[str]:
-    """Provide an autocomplete handler for the `server` option of the `alert` slash command.
-    The goal is to provide the list of server names that the user can legally raise an alert for,
-    based on the roles that the user has in the AlertGuild in which the command was invoked."""
-
-    invoking_member = typing.cast(discord.Member, ctx.interaction.user)
-    invoking_guild = ctx.interaction.guild
-    if invoking_guild is None or invoking_guild.id not in ALERT_GUILDS:
-        raise commands.GuildNotFound(str(invoking_guild.id) if invoking_guild else "[None]")
-
-    return [
-        role.name for role in invoking_member.roles
-        if role.id in ALERT_GUILDS[invoking_guild.id].guild_notification_roles.values()
-    ]
-
-
 class FCYFunctionality(commands.Cog):
     """This cog implements the majority of the functionality for the Full Course Yellow bot."""
 
@@ -180,6 +137,52 @@ class FCYFunctionality(commands.Cog):
             f"({ban_ale.reason or '[No reason provided]'})"
         )[:100]  # These values can only be up to 100 characters long
 
+    async def determine_alert_server(self, ctx: discord.ApplicationContext) -> str:
+        """Attempt to determine the name of the server for the use of the `alert` slash command, from
+        the application context alone. In many use-cases, this can be determined without ever having
+        to ask the user for more information, but if we do need to, we can dispatch a View to do so.
+
+        - If the command was invoked from a MonitoredGuild, we can return the MonitoredGuild's name.
+
+        - If not, then it must have been invoked from an AlertGuild. Cross-reference the invoking user's
+        list of roles with the AlertGuild's guild_notification_roles; if we find exactly one match,
+        we can return the name of that role.
+
+        - If we find no matches, or more than one match, dispatch a View to ask the user which server to use."""
+
+        invoking_member = typing.cast(discord.Member, ctx.interaction.user)
+        invoking_guild = ctx.interaction.guild
+        if invoking_guild is None or (invoking_guild.id not in (set(ALERT_GUILDS) | set(MONITORED_GUILDS))):
+            raise commands.GuildNotFound(str(invoking_guild.id) if invoking_guild else "[None]")
+
+        if invoking_guild.id in MONITORED_GUILDS:
+            return MONITORED_GUILDS[invoking_guild.id].name
+
+        # At this point, the invoking guild must be an AlertGuild
+        invoking_alert_guild = ALERT_GUILDS[invoking_guild.id]
+        member_notification_roles = [
+            role.name for role in invoking_member.roles
+            if role.id in invoking_alert_guild.guild_notification_roles.values()
+        ]
+
+        if len(member_notification_roles) == 1: # The user had exactly one notification role
+            return member_notification_roles[0]
+
+        options = member_notification_roles if member_notification_roles else [
+            role.name for role in invoking_alert_guild.guild.roles
+            if role.id in invoking_alert_guild.guild_notification_roles.values()
+        ]
+
+        prompt = (
+            "I wasn't able to automatically determine which server is raising this alert.\n"
+            "Please use the dropdown below to tell me which server this alert is coming from."
+        )
+        selection_view = ServerSelectView(options)
+
+        await ctx.send_response(prompt, view = selection_view, ephemeral = True)
+        await selection_view.wait()
+        return selection_view.selection
+
     def generate_base_alert_embed(
         self,
         banned_actor: Actor,
@@ -242,20 +245,13 @@ class FCYFunctionality(commands.Cog):
 
     @commands.slash_command(
         name = "alert",
-        description = "Send an alert about a problematic user.",
+        description = "Raise an alert about a problematic user.",
         options = [
             discord.Option( # pylint: disable = no-member
                 name = "user_id",
                 description = "The Discord User ID of the user you're raising an alert for",
                 input_type = int,
                 required = True,
-            ),
-            discord.Option( # pylint: disable = no-member
-                name = "server",
-                description = "The Discord server raising the alert",
-                input_type = str,
-                required = True,
-                choices = [mg.name for mg in MONITORED_GUILDS.values()],
             ),
             discord.Option( # pylint: disable = no-member
                 name = "reason",
@@ -272,13 +268,11 @@ class FCYFunctionality(commands.Cog):
         self,
         ctx: discord.ApplicationContext,
         user_id: int,
-        server: str,
         reason: Optional[str],
     ) -> None:
-        """Executes the flow to create and send an alert from a slash command.
-        Responds to the user via an ephemeral message."""
+        """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 
-        # Check to make sure the user isn't a moderator.
+        # First, check to make sure the user isn't a moderator - if so, we don't create an alert.
         # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
         if str(user_id) not in TESTING_USER_IDS and str(user_id) in self.alert_guild_members:
             await ctx.send_response(
@@ -287,20 +281,55 @@ class FCYFunctionality(commands.Cog):
                     "Please don't ping a bunch of roles just to make a joke."
                 ),
                 ephemeral = True,
-                delete_after = 30,
+                delete_after = 15,
             )
             fcy_logger.info(f"Declining to create alert against User ID {user_id} because they are a moderator.")
+            return
 
-        else:
-            await self.send_alerts(
-                banned_actor = await self.bot.solidify_actor_abstract(user_id),
-                banning_server_name = server,
-                ban_reason = reason,
-                message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
-            )
+        # Now that we know the user isn't a moderator, we can proceed to create and send the alerts.
+        await self.send_alerts(
+            banned_actor = await self.bot.solidify_actor_abstract(user_id),
+            banning_server_name = await self.determine_alert_server(ctx),
+            ban_reason = reason,
+            message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
+        )
 
-            await ctx.send_response(
-                content = "Successfully raised an alert.",
-                ephemeral = True,
-                delete_after = 10,
-            )
+        # When we go to respond, we don't know whether we had to ask the user for more information about the server.
+        # As a result, we need to try to respond normally first, then if that fails, edit the interaction response.
+        response_message = "Successfully raised an alert."
+        try:
+            await ctx.send_response(content = response_message, delete_after = 10, ephemeral = True)
+        except RuntimeError:
+            await ctx.interaction.edit_original_response(content = response_message, delete_after = 10, view = None)
+
+
+class ServerSelectView(discord.ui.View):
+    """This view provides a way to ask the user for more information about which server a new alert should be
+    raised for. In many use-cases, we can deduce the server from  the context of the interaction, but if more
+    information is needed, this View can be dispatched to collect it."""
+
+    options: list[str]
+    select_menu: discord.ui.Select
+
+    selection: str
+
+    def __init__(self, options: list[str]) -> None:
+        super().__init__()
+        self.options = options
+
+        self.select_menu = discord.ui.Select(
+            select_type = discord.ComponentType.string_select,
+            placeholder = "Which server should this alert come from?",
+            min_values = 1,
+            max_values = 1,
+            options = [discord.SelectOption(label = option) for option in self.options],
+        )
+        self.select_menu.callback = self.select_callback
+
+        self.add_item(self.select_menu)
+
+    async def select_callback(self, interaction: discord.Interaction) -> None: # pylint: disable = unused-argument
+        """Set this View's attributes based on the selections made in the menu,
+        and pass the signal that this View has stopped accepting input."""
+        self.selection = str(self.select_menu.values[0])
+        self.stop()

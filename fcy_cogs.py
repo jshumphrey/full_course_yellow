@@ -47,6 +47,10 @@ class FCYFunctionality(commands.Cog):
         self.check_populate_installed_guilds()
         await self.populate_alert_guild_members()
         fcy_logger.info("FCYFunctionality.on_ready has completed successfully.")
+        fcy_logger.debug("\n".join([
+            f"Enabled MonitoredGuilds: {[g.name for g in fcy_constants.ENABLED_MONITORED_GUILDS.values()]}",
+            f"Enabled AlertGuilds: {[g.name for g in fcy_constants.ENABLED_ALERT_GUILDS.values()]}",
+        ]))
 
     @commands.Cog.listener()
     async def on_audit_log_entry(self, entry: discord.AuditLogEntry) -> None:
@@ -304,9 +308,7 @@ class FCYFunctionality(commands.Cog):
         for alert_guild in fcy_constants.ENABLED_ALERT_GUILDS.values():
             if testing_guilds_only is True and alert_guild.testing is False:
                 continue
-            if (guild := self.bot.get_guild(alert_guild.id)) is None:
-                raise commands.GuildNotFound(str(alert_guild.id))
-            if (channel := guild.get_channel(alert_guild.alert_channel_id)) is None:
+            if (channel := alert_guild.guild.get_channel(alert_guild.alert_channel_id)) is None:
                 raise commands.ChannelNotFound(str(alert_guild.alert_channel_id))
             if not isinstance(channel, discord.TextChannel):
                 raise TypeError(f"{alert_guild.alert_channel_id} is not a text channel")

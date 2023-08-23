@@ -1,0 +1,28 @@
+[Unit]
+Description=The Full Course Yellow Discord bot
+After=multi-user.target
+Requires=network.target
+
+# If the service crashes out more than 3 times in 300 seconds (5 minutes), stop trying to restart it
+StartLimitBurst=3
+StartLimitIntervalSec=300
+
+[Service]
+Type=idle
+User=lux
+
+# Pull changes before starting
+ExecStartPre=git pull
+ExecStart=/usr/bin/python full_course_yellow.py
+WorkingDirectory=/home/lux/dog/fcy_prod
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=full-course-yellow
+SyslogLevelPrefix=true
+
+Restart=on-failure
+RestartSec=30
+
+[Install]
+WantedBy=multi-user.target

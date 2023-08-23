@@ -42,6 +42,7 @@ SMS_AG = AlertGuild(
     id = 959541053915037697,
     name = "Staff of MS Discords",
     alert_channel_id = 960480902331383809,
+    general_notification_role_id = 1144006270454599720,
     guild_notification_roles = {
         177387572505346048: 959862354663850086, # /r/formula1
         142082511902605313: 959542104302944327, # OF1D
@@ -54,7 +55,6 @@ SMS_AG = AlertGuild(
         830080368089890887: 1133781212251553883, # Extreme E
         360079258980319232: 1112467709045788692, # /r/IndyCar
     },
-    enabled = False,
 )
 
 # Expose some dicts as public collections of MonitoredGuilds and AlertGuilds.

@@ -377,7 +377,7 @@ class FCYFunctionality(commands.Cog):
             alerting_server_name = await self.determine_alert_server(ctx),
             alert_reason = reason,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
-            testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].enabled, # type: ignore - we trust that the guild ID is valid
+            testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].testing, # type: ignore - we trust that the guild ID is valid
         )
 
         # When we go to respond, we don't know whether we had to ask the user for more information about the server.

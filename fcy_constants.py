@@ -73,7 +73,9 @@ ALL_ALERT_GUILDS: dict[GuildID, AlertGuild] = {
 ENABLED_ALERT_GUILDS = {ag_id: ag for ag_id, ag in ALL_ALERT_GUILDS.items() if ag.enabled is True}
 
 ALL_GUILDS = ALL_MONITORED_GUILDS | ALL_ALERT_GUILDS
+ALL_GUILD_OBJECTS = set(ALL_MONITORED_GUILDS.values()) | set(ALL_ALERT_GUILDS.values())
 ALL_ENABLED_GUILDS = ENABLED_MONITORED_GUILDS | ENABLED_ALERT_GUILDS
+ALL_ENABLED_GUILD_OBJECTS = set(ENABLED_MONITORED_GUILDS.values()) | set(ENABLED_ALERT_GUILDS.values())
 
 if __name__ == "__main__":
     breakpoint() # pylint: disable = forgotten-debug-statement

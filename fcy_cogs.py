@@ -28,33 +28,6 @@ class FCYFunctionality(commands.Cog):
         self.bot = bot
         self.alert_guild_members = set()
 
-    @staticmethod
-    def get_mutual_monitored_guilds(actor: Actor) -> list[fcy_guilds.MonitoredGuild]:
-        """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor.
-
-        This is done by attempting to fetch the member from each of the MonitoredGuilds, instead of simply
-        caching members and using a get, because that would require that we cache and track offline members
-        (because it's critical that we detect whether the user is present in the MonitoredGuild, even if
-        they're offline), and the servers that this particular bot will be installed in are HUMONGOUS;
-        as a result, caching members is both extremely slow and extremely expensive.
-
-        Ultimately, a single fetch for each guild is going to be a lot less work."""
-
-        mutual_mgs = []
-        for monitored_guild in fcy_constants.ENABLED_MONITORED_GUILDS.values():
-            try:
-                _ = monitored_guild.guild.fetch_member(actor.id)
-                mutual_mgs.append(monitored_guild)
-            except discord.Forbidden:
-                fcy_logger.error(
-                    f"Attempted to fetch a member from MonitoredGuild {monitored_guild.name}, "
-                    "but permission was denied to perform this action!"
-                )
-            except discord.HTTPException:
-                pass  # If we don't find them, that's fine; just move on
-
-        return mutual_mgs
-
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         """When a new member joins, if the joined guild is an AlertGuild, update alert_guild_members."""
@@ -114,11 +87,38 @@ class FCYFunctionality(commands.Cog):
                 testing_guilds_only = fcy_constants.ENABLED_MONITORED_GUILDS[entry.guild.id].testing,
             )
 
+    @staticmethod
+    def get_mutual_monitored_guilds(actor: Actor) -> list[fcy_guilds.MonitoredGuild]:
+        """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor.
+
+        This is done by attempting to fetch the member from each of the MonitoredGuilds, instead of simply
+        caching members and using a get, because that would require that we cache and track offline members
+        (because it's critical that we detect whether the user is present in the MonitoredGuild, even if
+        they're offline), and the servers that this particular bot will be installed in are HUMONGOUS;
+        as a result, caching members is both extremely slow and extremely expensive.
+
+        Ultimately, a single fetch for each guild is going to be a lot less work."""
+
+        mutual_mgs = []
+        for monitored_guild in fcy_constants.ENABLED_MONITORED_GUILDS.values():
+            try:
+                _ = monitored_guild.guild.fetch_member(actor.id)
+                mutual_mgs.append(monitored_guild)
+            except discord.Forbidden:
+                fcy_logger.error(
+                    f"Attempted to fetch a member from MonitoredGuild {monitored_guild.name}, "
+                    "but permission was denied to perform this action!"
+                )
+            except discord.HTTPException:
+                pass  # If we don't find them, that's fine; just move on
+
+        return mutual_mgs
+
     def check_populate_installed_guilds(self) -> None:
         """This executes a number of checks on the bot's InstalledGuilds, and attempts to populate
         InstalledGuild.guild. This is run as part of the on_ready process."""
 
-        for installed_guild in fcy_constants.ALL_ENABLED_GUILDS.values():
+        for installed_guild in fcy_constants.ALL_ENABLED_GUILD_OBJECTS:
             if installed_guild.id not in {guild.id for guild in self.bot.guilds}:
                 fcy_logger.error(
                     f"The bot is configured for Guild ID {installed_guild.id}, "

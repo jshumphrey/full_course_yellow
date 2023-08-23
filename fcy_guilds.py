@@ -22,7 +22,7 @@ class InstalledGuild:
 
     id: GuildID
     name: str
-    enabled: bool
+    enabled: bool  # A flag indicating whether the Guild is ready for use in production
     testing: bool  # A flag indicating whether the Guild is a testing server
     guild: discord.Guild  # This will get set during bot.on_ready
 
@@ -53,7 +53,8 @@ class AlertGuild(InstalledGuild):
 
     id: GuildID
     name: str
-    enabled: bool
+    enabled: bool  # A flag indicating whether the Guild is ready for use in production
+    testing: bool  # A flag indicating whether the Guild is a testing server
     guild: discord.Guild
 
     alert_channel_id: ChannelID
@@ -104,7 +105,8 @@ class MonitoredGuild(InstalledGuild):
 
     id: GuildID
     name: str
-    enabled: bool
+    enabled: bool  # A flag indicating whether the Guild is ready for use in production
+    testing: bool  # A flag indicating whether the Guild is a testing server
     guild: discord.Guild
 
     audit_log_handler: Callable[[discord.AuditLogEntry], bool]

@@ -87,14 +87,19 @@ class AlertGuild(InstalledGuild):
         role pings for this AlertGuild's role for that guild, based on guild_notification_roles."""
 
         if not mutual_guilds:
-            return "[Not found in any monitored server]"
+            result = "[Not found in any monitored server]"
+        else:
+            result = ", ".join(
+                guild.name if guild.id not in self.guild_notification_roles
+                else f"<@&{self.guild_notification_roles[guild.id]}>"
+                for guild in mutual_guilds
+            )
 
-        return ", ".join(
-            guild.name if guild.id not in self.guild_notification_roles
-            else f"<@&{self.guild_notification_roles[guild.id]}>"
-            for guild in mutual_guilds
+        fcy_logger.debug(
+            f"AlertGuild {self.name} called to decorate mutual_guilds with Guild IDs: "
+            f"{[g.id for g in mutual_guilds]}. Result: {result}."
         )
-
+        return result
 
 class MonitoredGuild(InstalledGuild):
     """A MonitoredGuild is a type of InstalledGuild that is monitored for new bans.

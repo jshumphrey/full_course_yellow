@@ -110,7 +110,7 @@ class FCYFunctionality(commands.Cog):
             except discord.HTTPException:
                 pass  # If we don't find them, that's fine; just move on
 
-        fcy_logger.debug(f"Mutual guilds for actor ID {actor.id}: mutual_mgs")
+        fcy_logger.debug(f"Mutual guilds for actor ID {actor.id}: {mutual_mgs}")
         return mutual_mgs
 
     def check_populate_installed_guilds(self) -> None:

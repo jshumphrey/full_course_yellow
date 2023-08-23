@@ -147,6 +147,57 @@ class FCYFunctionality(commands.Cog):
 
         fcy_logger.info("Populated FCYFunctionality.alert_guild_members.")
 
+    async def send_non_id_user_id_error_message(
+        self,
+        ctx: discord.ApplicationContext,
+        option_name: str = "user_id",
+    ) -> None:
+        """Send an error message to the user that the Discord User ID they provided isn't actually a User ID."""
+        await ctx.respond(
+            content = (
+                f"Sorry, it looks like the `{option_name}` you gave me isn't an actual Discord User ID.\n"
+                "Remember that this needs to be a user ***ID*** - a big number, not text."
+            ),
+            ephemeral = True,
+            delete_after = 15,
+        )
+        fcy_logger.info(
+            f"Sent non-ID User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+        )
+
+    async def send_moderator_error_message(self, ctx: discord.ApplicationContext) -> None:
+        """Send an error message to the user that the Discord User ID they provided belongs to a moderator."""
+        await ctx.respond(
+            content = (
+                "The provided user ID belongs to a motorsport-server moderator.\n"
+                "Please don't ping a bunch of roles just to make a joke."
+            ),
+            ephemeral = True,
+            delete_after = 15,
+        )
+        fcy_logger.info(
+            f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+        )
+
+    async def send_user_id_not_found_error_message(self, ctx: discord.ApplicationContext) -> None:
+        """Send an error message to the user that the Discord User ID they provided could not be found."""
+        user_id = self.bot.get_option_value(ctx, "user_id")
+        await ctx.respond(
+            content = (
+                f"Sorry, I looked, but I couldn't find any Discord user with the User ID `{user_id}`.\n"
+                "Please double-check that you typed or pasted it correctly."
+            ),
+            ephemeral = True,
+            delete_after = 15,
+        )
+        fcy_logger.info(
+            f"Sent User ID not found error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+        )
+
+
     async def fetch_most_recent_bans(
         self,
         guild: discord.Guild,
@@ -305,25 +356,24 @@ class FCYFunctionality(commands.Cog):
 
         # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
         if not user_id.isdigit():
-            raise TypeError(f"The string provided for `alert.user_id` cannot be converted to an integer: {user_id}")
-
-        # First, check to make sure the user isn't a moderator - if so, we don't create an alert.
-        # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
-        if user_id not in fcy_constants.TESTING_USER_IDS and user_id in self.alert_guild_members:
-            await ctx.send_response(
-                content = (
-                    "The provided user ID belongs to a motorsport-server moderator.\n"
-                    "Please don't ping a bunch of roles just to make a joke."
-                ),
-                ephemeral = True,
-                delete_after = 15,
-            )
-            fcy_logger.debug(f"Declining to create alert against User ID {user_id} because they are a moderator.")
+            await self.send_non_id_user_id_error_message(ctx)
             return
 
-        # Now that we know the user isn't a moderator, we can proceed to create and send the alerts.
+        # Make sure the user isn't a moderator.
+        # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
+        if user_id not in fcy_constants.TESTING_USER_IDS and user_id in self.alert_guild_members:
+            await self.send_moderator_error_message(ctx)
+            return
+
+        try:
+            solidified_actor = await self.bot.solidify_actor_abstract(user_id)
+        except commands.UserNotFound:
+            await self.send_user_id_not_found_error_message(ctx)
+            return
+
+        # Once all checks have passed, we can proceed to create and send the alerts.
         await self.send_alerts(
-            offending_actor = await self.bot.solidify_actor_abstract(user_id),
+            offending_actor = solidified_actor,
             alerting_server_name = await self.determine_alert_server(ctx),
             alert_reason = reason,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
@@ -337,32 +387,6 @@ class FCYFunctionality(commands.Cog):
             await ctx.send_response(content = response_message, delete_after = 10, ephemeral = True)
         except RuntimeError:
             await ctx.interaction.edit_original_response(content = response_message, delete_after = 10, view = None)
-
-    @slash_alert.error
-    async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
-        """Handle errors raised during the course of `slash_alert`, and attempt to provide useful error messages.
-
-        Remember that the goal is to help the users understand what happened when _THEY_ did something wrong!
-        If the error that occurred wasn't due to anything the user did, they probably shouldn't get an error
-        message about it - it'll get logged anyway, and we can debug from there instead."""
-
-        if isinstance(error, TypeError) and "cannot be converted to an integer" in str(error):
-            user_id = self.bot.get_option_value(ctx, "user_id")
-            await ctx.respond(ephemeral = True, content = (
-                "Sorry, it looks like the `user_id` you gave me isn't an actual Discord User ID.\n"
-                "Remember that this needs to be a user ***ID*** - a big number, not text."
-            ))
-
-        elif isinstance(error, commands.UserNotFound):
-            user_id = self.bot.get_option_value(ctx, "user_id")
-            await ctx.respond(ephemeral = True, content = (
-                f"Sorry, I looked, but I couldn't find any Discord user with the User ID `{user_id}`.\n"
-                "Please make sure that you typed or pasted it correctly, and remember that "
-                "this needs to be a user ***ID*** - a big number, not text."
-            ))
-
-        else:
-            raise error
 
 
 class ServerSelectView(discord.ui.View):

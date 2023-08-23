@@ -158,7 +158,7 @@ class FCYBot(discord.Bot):
         """This listener implements custom logging for whenever a Command is invoked."""
         fcy_logger.info(
             f"{ctx.command.name} invoked by {self.pprint_actor_name(ctx.author)} "
-            f"at {self.get_current_utc_iso_time_str()}"
+            f"at {self.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
         )
 
 

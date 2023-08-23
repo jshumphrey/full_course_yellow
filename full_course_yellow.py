@@ -102,7 +102,14 @@ class FCYBot(discord.Bot):
             return actor_abstract
 
         user_id = int(actor_abstract)
-        actor = await self.fetch_user(user_id)
+        try:
+            actor = await self.fetch_user(user_id)
+        except discord.errors.HTTPException as ex:
+            raise commands.UserNotFound(
+                "Attempted to solidify the provided Actor abstract, "
+                "but the user ID provided was out of range of what a valid User ID should be!"
+            ) from ex
+
         if actor is None:
             raise commands.UserNotFound(
                 "Attempted to solidify the provided Actor abstract, "

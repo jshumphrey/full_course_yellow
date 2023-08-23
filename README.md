@@ -12,7 +12,7 @@ The bot's goal is to simplify the process of broadcasting an informative alert a
 
 This command asks you for some information about a problematic user, then generates an alert message that gets broadcast to one or more servers that are configured to receive these alerts.
 
-When `/alert` is used, it will scan all of the servers it's monitoring, checking to see if the user is in any of them. The alert message it creates will include a list of any servers where it detected the user, and will ping the respective roles for those servers in the alert message. (If it doesn't detect the user in any of the servers, it'll mention that, too.)
+When `/alert` is used, the bot will scan all of the servers it's monitoring, checking to see if the user is in any of them. The alert message it creates will include a list of any servers where it detected the user, and will ping the respective roles for those servers in the alert message. (If it doesn't detect the user in any of the servers, it'll mention that, too.)
 
 `/alert` also allows a server that receives alert broadcasts to set up a role for users to opt into; if configured, this role will be pinged every time a new alert is broadcast, regardless of which server(s) the offending user was detected in. (Users might want to do this so that even if the offending user isn't in their server yet, they'll still get pinged about the alert so that they know to preemptively ban them from joining.)
 
@@ -29,7 +29,7 @@ Right now, the `/alert` command is only available in Alert servers, not Monitore
 
 ### ⚠️ Get in touch with me before you try to invite the bot! ⚠️
 
-Because this bot is intended for use in a private, niche use-case, the bot is set to Private, meaning that **none of the below invite links will work!** 
+Because this bot is intended for use in a private, niche use-case, the bot is set to Private, meaning that ***none of the below invite links will normally work!*** 
 
 This prevents people from inviting the bot to random servers, but it makes it so that only I can invite the bot to new servers - which isn't ideal, since server admins would have to give an untrusted user (me) the Manage Server permission in order to complete the install.
 

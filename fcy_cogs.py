@@ -281,7 +281,7 @@ class FCYFunctionality(commands.Cog):
             discord.Option( # pylint: disable = no-member
                 name = "user_id",
                 description = "The Discord User ID of the user you're raising an alert for",
-                input_type = int,
+                input_type = str,
                 required = True,
             ),
             discord.Option( # pylint: disable = no-member
@@ -298,14 +298,18 @@ class FCYFunctionality(commands.Cog):
     async def slash_alert(
         self,
         ctx: discord.ApplicationContext,
-        user_id: int,
+        user_id: str,
         reason: Optional[str],
     ) -> None:
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 
+        # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
+        if not user_id.isdigit():
+            raise TypeError(f"The string provided for `alert.user_id` cannot be converted to an integer: {user_id}")
+
         # First, check to make sure the user isn't a moderator - if so, we don't create an alert.
         # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
-        if str(user_id) not in fcy_constants.TESTING_USER_IDS and str(user_id) in self.alert_guild_members:
+        if user_id not in fcy_constants.TESTING_USER_IDS and user_id in self.alert_guild_members:
             await ctx.send_response(
                 content = (
                     "The provided user ID belongs to a motorsport-server moderator.\n"
@@ -342,17 +346,23 @@ class FCYFunctionality(commands.Cog):
         If the error that occurred wasn't due to anything the user did, they probably shouldn't get an error
         message about it - it'll get logged anyway, and we can debug from there instead."""
 
-        # First, we go ahead and raise the exception. This guarantees that it'll be raised if it's not caught below.
-        try:
-            raise error
-
-        except commands.UserNotFound:
+        if isinstance(error, TypeError) and "cannot be converted to an integer" in str(error):
             user_id = self.bot.get_option_value(ctx, "user_id")
             await ctx.respond(ephemeral = True, content = (
-                f"Sorry, I couldn't find any Discord user with the User ID `{user_id}`.\n"
+                "Sorry, it looks like the `user_id` you gave me isn't an actual Discord User ID.\n"
+                "Remember that this needs to be a user ***ID*** - a big number, not text."
+            ))
+
+        elif isinstance(error, commands.UserNotFound):
+            user_id = self.bot.get_option_value(ctx, "user_id")
+            await ctx.respond(ephemeral = True, content = (
+                f"Sorry, I looked, but I couldn't find any Discord user with the User ID `{user_id}`.\n"
                 "Please make sure that you typed or pasted it correctly, and remember that "
                 "this needs to be a user ***ID*** - a big number, not text."
             ))
+
+        else:
+            raise error
 
 
 class ServerSelectView(discord.ui.View):

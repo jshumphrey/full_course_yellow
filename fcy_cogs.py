@@ -314,7 +314,7 @@ class FCYFunctionality(commands.Cog):
                 ephemeral = True,
                 delete_after = 15,
             )
-            fcy_logger.info(f"Declining to create alert against User ID {user_id} because they are a moderator.")
+            fcy_logger.debug(f"Declining to create alert against User ID {user_id} because they are a moderator.")
             return
 
         # Now that we know the user isn't a moderator, we can proceed to create and send the alerts.
@@ -333,6 +333,26 @@ class FCYFunctionality(commands.Cog):
             await ctx.send_response(content = response_message, delete_after = 10, ephemeral = True)
         except RuntimeError:
             await ctx.interaction.edit_original_response(content = response_message, delete_after = 10, view = None)
+
+    @slash_alert.error
+    async def on_application_command_error(self, ctx: discord.ApplicationContext, error: discord.DiscordException):
+        """Handle errors raised during the course of `slash_alert`, and attempt to provide useful error messages.
+
+        Remember that the goal is to help the users understand what happened when _THEY_ did something wrong!
+        If the error that occurred wasn't due to anything the user did, they probably shouldn't get an error
+        message about it - it'll get logged anyway, and we can debug from there instead."""
+
+        # First, we go ahead and raise the exception. This guarantees that it'll be raised if it's not caught below.
+        try:
+            raise error
+
+        except commands.UserNotFound:
+            user_id = self.bot.get_option_value(ctx, "user_id")
+            await ctx.respond(ephemeral = True, content = (
+                f"Sorry, I couldn't find any Discord user with the User ID `{user_id}`.\n"
+                "Please make sure that you typed or pasted it correctly, and remember that "
+                "this needs to be a user ***ID*** - a big number, not text."
+            ))
 
 
 class ServerSelectView(discord.ui.View):

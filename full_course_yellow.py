@@ -9,6 +9,7 @@ import discord  # This uses pycord, not discord.py
 from discord.ext import commands
 import logging
 import sys
+from typing import Any
 
 import fcy_cogs
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
@@ -71,6 +72,23 @@ class FCYBot(discord.Bot):
         if actor.global_name is None or actor.global_name == discord_username:
             return discord_username
         return f"{actor.global_name} ({actor.name}#{actor.discriminator})"
+
+    @staticmethod
+    def get_option_value(ctx: discord.ApplicationContext, option_name: str) -> Any | None:
+        """Given an ApplicationContext in which options were provided, return the value of the option
+        whose name is the provided `option_name`. If the option was not provided at all, return None."""
+
+        if option_name in {option.name for option in ctx.unselected_options or []}:
+            return None
+
+        if ctx.selected_options is None:
+            return None
+
+        for option_dict in ctx.selected_options:
+            if option_name in option_dict:
+                return option_dict[option_name]
+
+        return None
 
     async def solidify_actor_abstract(self, actor_abstract: Actor | int | str | None) -> Actor:
         """This takes a "Actor abstract" - a nebulous parameter that might be a fully-fledged Actor,

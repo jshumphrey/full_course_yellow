@@ -23,17 +23,20 @@ class InstalledGuild:
     id: GuildID
     name: str
     enabled: bool
+    testing: bool  # A flag indicating whether the Guild is a testing server
     guild: discord.Guild  # This will get set during bot.on_ready
 
     def __init__(
         self,
         id: GuildID,  # pylint: disable = redefined-builtin
         name: str,
-        enabled: bool = True,
+        enabled: bool,
+        testing: bool,
     ) -> None:
         self.id = id
         self.name = name
         self.enabled = enabled
+        self.testing = testing
 
     def __str__(self) -> str:
         return self.name
@@ -65,8 +68,9 @@ class AlertGuild(InstalledGuild):
         general_notification_role_id: Optional[RoleID] = None,
         guild_notification_roles: Optional[dict[GuildID, RoleID]] = None,
         enabled: bool = True,
+        testing: bool = False,
     ) -> None:
-        super().__init__(id, name, enabled)
+        super().__init__(id, name, enabled, testing)
         self.alert_channel_id = alert_channel_id
         self.general_notification_role_id = general_notification_role_id
         self.guild_notification_roles = guild_notification_roles or {}
@@ -111,8 +115,9 @@ class MonitoredGuild(InstalledGuild):
         name: str,
         audit_log_handler: Callable[[discord.AuditLogEntry], bool],
         enabled: bool = True,
+        testing: bool = False,
     ) -> None:
-        super().__init__(id, name, enabled)
+        super().__init__(id, name, enabled, testing)
         self.audit_log_handler = audit_log_handler
 
         if self.enabled and self.audit_log_handler is self.placeholder_ale_handler:

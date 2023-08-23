@@ -11,7 +11,7 @@ from typing import Optional
 
 import full_course_yellow as fcy
 import fcy_guilds
-from fcy_constants import MONITORED_GUILDS, ALERT_GUILDS, TESTING_USER_IDS
+import fcy_constants
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
 logging.basicConfig(level=logging.INFO)
@@ -30,13 +30,35 @@ class FCYFunctionality(commands.Cog):
 
     @staticmethod
     def get_mutual_monitored_guilds(actor: Actor) -> list[fcy_guilds.MonitoredGuild]:
-        """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor."""
-        return [mg for mg in MONITORED_GUILDS.values() if mg.id in {g.id for g in actor.mutual_guilds}]
+        """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor.
+
+        This is done by attempting to fetch the member from each of the MonitoredGuilds, instead of simply
+        caching members and using a get, because that would require that we cache and track offline members
+        (because it's critical that we detect whether the user is present in the MonitoredGuild, even if
+        they're offline), and the servers that this particular bot will be installed in are HUMONGOUS;
+        as a result, caching members is both extremely slow and extremely expensive.
+
+        Ultimately, a single fetch for each guild is going to be a lot less work."""
+
+        mutual_mgs = []
+        for monitored_guild in fcy_constants.ENABLED_MONITORED_GUILDS.values():
+            try:
+                _ = monitored_guild.guild.fetch_member(actor.id)
+                mutual_mgs.append(monitored_guild)
+            except discord.Forbidden:
+                fcy_logger.error(
+                    f"Attempted to fetch a member from MonitoredGuild {monitored_guild.name}, "
+                    "but permission was denied to perform this action!"
+                )
+            except discord.HTTPException:
+                pass  # If we don't find them, that's fine; just move on
+
+        return mutual_mgs
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member) -> None:
         """When a new member joins, if the joined guild is an AlertGuild, update alert_guild_members."""
-        if member.guild.id in ALERT_GUILDS:
+        if member.guild.id in fcy_constants.ENABLED_ALERT_GUILDS:
             self.alert_guild_members.add(str(member.id))
 
     @commands.Cog.listener()
@@ -45,7 +67,7 @@ class FCYFunctionality(commands.Cog):
         This needs to be the RAW member remove event because the normal member remove event
         depends on the member cache, which we're not using."""
 
-        if payload.guild_id in ALERT_GUILDS:
+        if payload.guild_id in fcy_constants.ENABLED_ALERT_GUILDS:
             self.alert_guild_members.remove(payload.user.id) # type: ignore - why isn't this working?
 
     @commands.Cog.listener()
@@ -63,34 +85,40 @@ class FCYFunctionality(commands.Cog):
         Some guilds have more complex moderation systems that allow for the issuance of temporary bans;
         we only want to create alerts for permanent bans, so the handling function for that server
         will need to determine whether the ban was permanent before issuing the alert."""
+        # pylint: disable = unreachable
+        # This listener is disabled for right now - we're still figuring out how we want to handle automatic
+        # processing of audit log entries. The return statement below stops the function from doing anything.
+        return
 
         if entry.action != discord.AuditLogAction.ban:
             return
 
-        fcy_logger.debug(f"{entry.__dict__}")
+        if entry.guild.id not in fcy_constants.ALL_ENABLED_GUILDS:
+            raise commands.GuildNotFound(
+                f"Could not process audit log entry for guild {entry.guild.id} / {entry.guild.name}: "
+                f"guild is not an InstalledGuild, or guild is not enabled"
+            )
 
-        try:
-            ale_handler = MONITORED_GUILDS[entry.guild.id].audit_log_handler
+        if entry.guild.id not in fcy_constants.ENABLED_MONITORED_GUILDS:
+            # We know that it's an enabled InstalledGuild, so if the lookup in MONITORED_GUILDS
+            # fails, that just means it's an AlertGuild. In that case, we don't want to process this ALE.
+            return
 
-        except KeyError as ex: # BUG: We need to not raise this blindly - it could be an AlertGuild!
-            raise KeyError(
-                f"Tried to process audit log entry for guild {entry.guild.name} "
-                f"(guild ID {entry.guild.id}), but guild ID not present in MONITORED_GUILDS!"
-            ) from ex
-
+        ale_handler = fcy_constants.ENABLED_MONITORED_GUILDS[entry.guild.id].audit_log_handler
         if ale_handler(entry) is True:
             await self.send_alerts(
-                banned_actor = await self.bot.solidify_actor_abstract(entry._target_id), # pylint: disable = protected-access
-                banning_server_name = entry.guild.name,
-                ban_reason = entry.reason,
+                offending_actor = await self.bot.solidify_actor_abstract(entry._target_id), # pylint: disable = protected-access
+                alerting_server_name = entry.guild.name,
+                alert_reason = entry.reason,
                 message_body = "A new permanent ban has been detected!",
+                testing_guilds_only = fcy_constants.ENABLED_MONITORED_GUILDS[entry.guild.id].testing,
             )
 
     def check_populate_installed_guilds(self) -> None:
         """This executes a number of checks on the bot's InstalledGuilds, and attempts to populate
         InstalledGuild.guild. This is run as part of the on_ready process."""
 
-        for installed_guild in list(MONITORED_GUILDS.values()) + list(ALERT_GUILDS.values()):
+        for installed_guild in fcy_constants.ALL_ENABLED_GUILDS.values():
             if installed_guild.id not in {guild.id for guild in self.bot.guilds}:
                 fcy_logger.error(
                     f"The bot is configured for Guild ID {installed_guild.id}, "
@@ -113,7 +141,7 @@ class FCYFunctionality(commands.Cog):
         """This process runs during startup (in on_ready) to populate self.alert_guild_members, a type of
         "limited member cache" that only tracks the members present in the configured AlertGuilds."""
 
-        for alert_guild in ALERT_GUILDS.values():
+        for alert_guild in fcy_constants.ENABLED_ALERT_GUILDS.values():
             async for member in alert_guild.guild.fetch_members():
                 self.alert_guild_members.add(str(member.id))
 
@@ -131,9 +159,9 @@ class FCYFunctionality(commands.Cog):
         """This "decorates" an AuditLogEntry pertaining to a user ban, to provide a pretty-printed
         representation of the AuditLogEntry that helps a human recognize the banned user."""
 
-        banned_actor = await self.bot.solidify_actor_abstract(ban_ale._target_id) # pylint: disable = protected-access
+        offending_actor = await self.bot.solidify_actor_abstract(ban_ale._target_id) # pylint: disable = protected-access
         return (
-            f"{self.bot.pprint_actor_name(banned_actor)} "
+            f"{self.bot.pprint_actor_name(offending_actor)} "
             f"({ban_ale.reason or '[No reason provided]'})"
         )[:100]  # These values can only be up to 100 characters long
 
@@ -152,14 +180,14 @@ class FCYFunctionality(commands.Cog):
 
         invoking_member = typing.cast(discord.Member, ctx.interaction.user)
         invoking_guild = ctx.interaction.guild
-        if invoking_guild is None or (invoking_guild.id not in (set(ALERT_GUILDS) | set(MONITORED_GUILDS))):
+        if invoking_guild is None or invoking_guild.id not in fcy_constants.ALL_ENABLED_GUILDS:
             raise commands.GuildNotFound(str(invoking_guild.id) if invoking_guild else "[None]")
 
-        if invoking_guild.id in MONITORED_GUILDS:
-            return MONITORED_GUILDS[invoking_guild.id].name
+        if invoking_guild.id in fcy_constants.ENABLED_MONITORED_GUILDS:
+            return fcy_constants.ENABLED_MONITORED_GUILDS[invoking_guild.id].name
 
         # At this point, the invoking guild must be an AlertGuild
-        invoking_alert_guild = ALERT_GUILDS[invoking_guild.id]
+        invoking_alert_guild = fcy_constants.ENABLED_ALERT_GUILDS[invoking_guild.id]
         member_notification_roles = [
             role.name for role in invoking_member.roles
             if role.id in invoking_alert_guild.guild_notification_roles.values()
@@ -185,9 +213,9 @@ class FCYFunctionality(commands.Cog):
 
     def generate_base_alert_embed(
         self,
-        banned_actor: Actor,
-        banning_server_name: str,
-        ban_reason: Optional[str],
+        offending_actor: Actor,
+        alerting_server_name: str,
+        alert_reason: Optional[str],
         timestamp: datetime.datetime = datetime.datetime.now(),
     ):
         """This handles the process of creating the embed for a "New Alert" message.
@@ -201,29 +229,32 @@ class FCYFunctionality(commands.Cog):
                 timestamp = timestamp,
             )
             .set_author(
-                name = self.bot.pprint_actor_name(banned_actor),
-                icon_url = banned_actor.display_avatar.url,
+                name = self.bot.pprint_actor_name(offending_actor),
+                icon_url = offending_actor.display_avatar.url,
             )
-            .set_footer(text = f"Banned user's ID: {banned_actor.id}")
-            .add_field(name = "Relevant server", value = banning_server_name, inline = False)
-            .add_field(name = "Ban reason", value = ban_reason or "[No reason provided]", inline = False)
+            .set_footer(text = f"Offending user's ID: {offending_actor.id}")
+            .add_field(name = "Relevant server", value = alerting_server_name, inline = False)
+            .add_field(name = "Reason for alert", value = alert_reason or "[No reason provided]", inline = False)
         )
 
         return base_embed
 
     async def send_alerts(
         self,
-        banned_actor: Actor,
-        banning_server_name: str,
-        ban_reason: Optional[str],
+        offending_actor: Actor,
+        alerting_server_name: str,
+        alert_reason: Optional[str],
         message_body: Optional[str],
+        testing_guilds_only: bool = False,
     ) -> None:
         """This handles the process of sending a prepared alert out to ALL configured AlertGuilds."""
 
-        base_embed = self.generate_base_alert_embed(banned_actor, banning_server_name, ban_reason)
-        mutual_mgs = self.get_mutual_monitored_guilds(banned_actor)
+        base_embed = self.generate_base_alert_embed(offending_actor, alerting_server_name, alert_reason)
+        mutual_mgs = self.get_mutual_monitored_guilds(offending_actor)
 
-        for alert_guild in ALERT_GUILDS.values():
+        for alert_guild in fcy_constants.ENABLED_ALERT_GUILDS.values():
+            if testing_guilds_only is True and alert_guild.testing is False:
+                continue
             if (guild := self.bot.get_guild(alert_guild.id)) is None:
                 raise commands.GuildNotFound(str(alert_guild.id))
             if (channel := guild.get_channel(alert_guild.alert_channel_id)) is None:
@@ -260,7 +291,7 @@ class FCYFunctionality(commands.Cog):
                 required = False,
             ),
         ],
-        ids = list(ALERT_GUILDS.keys()),
+        ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
         guild_only = True,
         cooldown = None,
     )
@@ -274,7 +305,7 @@ class FCYFunctionality(commands.Cog):
 
         # First, check to make sure the user isn't a moderator - if so, we don't create an alert.
         # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
-        if str(user_id) not in TESTING_USER_IDS and str(user_id) in self.alert_guild_members:
+        if str(user_id) not in fcy_constants.TESTING_USER_IDS and str(user_id) in self.alert_guild_members:
             await ctx.send_response(
                 content = (
                     "The provided user ID belongs to a motorsport-server moderator.\n"
@@ -288,10 +319,11 @@ class FCYFunctionality(commands.Cog):
 
         # Now that we know the user isn't a moderator, we can proceed to create and send the alerts.
         await self.send_alerts(
-            banned_actor = await self.bot.solidify_actor_abstract(user_id),
-            banning_server_name = await self.determine_alert_server(ctx),
-            ban_reason = reason,
+            offending_actor = await self.bot.solidify_actor_abstract(user_id),
+            alerting_server_name = await self.determine_alert_server(ctx),
+            alert_reason = reason,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
+            testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].enabled, # type: ignore - we trust that the guild ID is valid
         )
 
         # When we go to respond, we don't know whether we had to ask the user for more information about the server.

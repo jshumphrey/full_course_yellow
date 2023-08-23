@@ -146,8 +146,12 @@ class FCYBot(discord.Bot):
 
 def read_token(token_filename: str) -> str:
     """Load the bot's token from the file."""
-    with open(token_filename, "r", encoding = "utf-8") as infile:
-        return infile.read().strip()
+    try:
+        with open(token_filename, "r", encoding = "utf-8") as infile:
+            return infile.read().strip()
+    except FileNotFoundError:
+        fcy_logger.exception(f"Could not find the token filename on disk: {TOKEN_FILENAME}")
+        sys.exit(1)
 
 
 def main():

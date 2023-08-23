@@ -8,9 +8,22 @@ The bot's goal is to simplify the process of broadcasting an informative alert a
 
 ### `/alert`
 
-This command # Todo
+![Screenshot of the /alert command in use](https://github.com/jshumphrey/full_course_yellow/images/screenshot_1.png?raw=true)
 
-Todo - mention that the bot tries to identify your server
+This command asks you for some information about a problematic user, then generates an alert message that gets broadcast to one or more servers that are configured to receive these alerts.
+
+When `/alert` is used, it will scan all of the servers it's monitoring, checking to see if the user is in any of them. The alert message it creates will include a list of any servers where it detected the user, and will ping the respective roles for those servers in the alert message. (If it doesn't detect the user in any of the servers, it'll mention that, too.)
+
+`/alert` also allows a server that receives alert broadcasts to set up a role for users to opt into; if configured, this role will be pinged every time a new alert is broadcast, regardless of which server(s) the offending user was detected in. (Users might want to do this so that even if the offending user isn't in their server yet, they'll still get pinged about the alert so that they know to preemptively ban them from joining.)
+
+#### Options for `/alert`
+
+- `user_id`: The Discord User ID for the user you're raising an alert about. Note that this needs to be the User **ID** (a long number that looks something like `1086293154304634910`), not the Discord username (`@snowcultscuffle`) or the Discord display name (`Lux's Dev/Testing Account`).
+- `reason`: The reason you're raising an alert for this user. Add as much text as you want.
+
+Once you use `/alert`, the bot will try to automatically determine which server you're raising the alert for, based on the roles you have in the server. If it can't figure that out (either because you don't have any of the roles it's looking for, or because you have more than one of them), it'll bring up a dropdown asking you to choose one. 
+
+Right now, the `/alert` command is only available in Alert servers, not Monitored servers. (See [How the Bot Works](#how-the-bot-works) below for more details on the different kinds of servers.)
 
 ## Inviting the Bot
 
@@ -20,7 +33,7 @@ Because this bot is intended for use in a private, niche use-case, the bot is se
 
 This prevents people from inviting the bot to random servers, but it makes it so that only I can invite the bot to new servers - which isn't ideal, since server admins would have to give an untrusted user (me) the Manage Server permission in order to complete the install.
 
-To get around this, message me on Discord so that we can coordinate a time when you want to invite the bot. I'll un-private the bot for a short while, which will make the invite links below work, you can go through the invite process, and when your'e done, I can make the bot private again. (I recognize that this is all a bit silly, but considering that the bot is being hosted on my personal computer at the moment, I'd really prefer to not have a bunch of random servers invite the bot and generate traffic.)
+To get around this, message me on Discord so that we can coordinate a time when you want to invite the bot. I'll un-private the bot for a short while, which will make the invite links below work, you can go through the invite process, and when you're done, I can make the bot private again. (I recognize that this is all a bit silly, but considering that the bot is being hosted on my personal computer at the moment, I'd really prefer to not have a bunch of random servers invite the bot and generate traffic.)
 
 ### When the bot's ready to invite...
 
@@ -71,7 +84,7 @@ _Note that if you do this, the names of the permissions in Discord's "Edit Chann
 
 ## Current List of To-Dos
 
-### New Features
+### New features
 
 #### Allow the bot to automatically raise alerts for any new bans in a Monitored server. 
 
@@ -83,7 +96,7 @@ If/when we go ahead with this, the use-case will involve providing a slash comma
 
 This shouldn't be too difficult to set up; I just haven't done it yet.
 
-### Bugs / Fixes
+### Things that need fixing or improvement
 
 #### Add more custom error messages when something goes wrong with the slash command.
 

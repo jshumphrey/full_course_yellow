@@ -170,7 +170,7 @@ class FCYFunctionality(commands.Cog):
         """Send an error message to the user that the Discord User ID they provided belongs to a moderator."""
         await ctx.respond(
             content = (
-                "The provided user ID belongs to a motorsport-server moderator.\n"
+                "The provided user ID belongs to a server moderator.\n"
                 "Please don't ping a bunch of roles just to make a joke."
             ),
             ephemeral = True,

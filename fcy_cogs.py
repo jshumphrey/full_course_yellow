@@ -267,7 +267,7 @@ class FCYFunctionality(commands.Cog):
         offending_actor: Actor,
         alerting_server_name: str,
         alert_reason: Optional[str],
-        timestamp: datetime.datetime = datetime.datetime.now(),
+        timestamp: Optional[datetime.datetime] = None,
     ):
         """This handles the process of creating the embed for a "New Alert" message.
 
@@ -277,7 +277,7 @@ class FCYFunctionality(commands.Cog):
         base_embed = (
             discord.Embed(
                 type = "rich",
-                timestamp = timestamp,
+                timestamp = timestamp or datetime.datetime.now(),
             )
             .set_author(
                 name = self.bot.pprint_actor_name(offending_actor),

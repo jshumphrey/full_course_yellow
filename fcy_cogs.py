@@ -14,9 +14,7 @@ import fcy_guilds
 import fcy_constants
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
-logging.basicConfig(level=logging.INFO)
 fcy_logger = logging.getLogger("full_course_yellow")
-pycord_logger = logging.getLogger("discord")
 
 
 class FCYFunctionality(commands.Cog):
@@ -88,7 +86,7 @@ class FCYFunctionality(commands.Cog):
             )
 
     @staticmethod
-    def get_mutual_monitored_guilds(actor: Actor) -> list[fcy_guilds.MonitoredGuild]:
+    async def get_mutual_monitored_guilds(actor: Actor) -> list[fcy_guilds.MonitoredGuild]:
         """This wraps the process of retrieving the list of MonitoredGuilds that contain the provided Actor.
 
         This is done by attempting to fetch the member from each of the MonitoredGuilds, instead of simply
@@ -102,7 +100,7 @@ class FCYFunctionality(commands.Cog):
         mutual_mgs = []
         for monitored_guild in fcy_constants.ENABLED_MONITORED_GUILDS.values():
             try:
-                _ = monitored_guild.guild.fetch_member(actor.id)
+                _ = await monitored_guild.guild.fetch_member(actor.id)
                 mutual_mgs.append(monitored_guild)
             except discord.Forbidden:
                 fcy_logger.error(
@@ -112,6 +110,7 @@ class FCYFunctionality(commands.Cog):
             except discord.HTTPException:
                 pass  # If we don't find them, that's fine; just move on
 
+        fcy_logger.debug(f"Mutual guilds for actor ID {actor.id}: mutual_mgs")
         return mutual_mgs
 
     def check_populate_installed_guilds(self) -> None:
@@ -196,7 +195,6 @@ class FCYFunctionality(commands.Cog):
             f"Sent User ID not found error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
             f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
         )
-
 
     async def fetch_most_recent_bans(
         self,
@@ -301,7 +299,7 @@ class FCYFunctionality(commands.Cog):
         """This handles the process of sending a prepared alert out to ALL configured AlertGuilds."""
 
         base_embed = self.generate_base_alert_embed(offending_actor, alerting_server_name, alert_reason)
-        mutual_mgs = self.get_mutual_monitored_guilds(offending_actor)
+        mutual_mgs = await self.get_mutual_monitored_guilds(offending_actor)
 
         for alert_guild in fcy_constants.ENABLED_ALERT_GUILDS.values():
             if testing_guilds_only is True and alert_guild.testing is False:

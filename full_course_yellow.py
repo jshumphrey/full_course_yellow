@@ -16,6 +16,7 @@ from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-im
 
 logging.basicConfig(level=logging.INFO)
 fcy_logger = logging.getLogger("full_course_yellow")
+fcy_logger.setLevel(logging.DEBUG)
 pycord_logger = logging.getLogger("discord")
 
 TOKEN_FILENAME = "token.txt"

@@ -10,9 +10,7 @@ from typing import Callable, Optional
 
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
-logging.basicConfig(level=logging.INFO)
 fcy_logger = logging.getLogger("full_course_yellow")
-pycord_logger = logging.getLogger("discord")
 
 
 class InstalledGuild:

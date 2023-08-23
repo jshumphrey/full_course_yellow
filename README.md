@@ -33,7 +33,9 @@ Because this bot is intended for use in a private, niche use-case, the bot is se
 
 This prevents people from inviting the bot to random servers, but it makes it so that only I can invite the bot to new servers - which isn't ideal, since server admins would have to give an untrusted user (me) the Manage Server permission in order to complete the install.
 
-To get around this, message me on Discord so that we can coordinate a time when you want to invite the bot. I'll un-private the bot for a short while, which will make the invite links below work, you can go through the invite process, and when you're done, I can make the bot private again. (I recognize that this is all a bit silly, but considering that the bot is being hosted on my personal computer at the moment, I'd really prefer to not have a bunch of random servers invite the bot and generate traffic.)
+To get around this, message me on Discord so that we can coordinate a time when you want to invite the bot. I'll un-private the bot for a short while, which will make the invite links below work, you can go through the invite process, and when you're done, I can make the bot private again. 
+
+_I recognize that this is all a bit silly, but considering that the bot is being hosted on my personal computer at the moment, I'd really prefer to not have a bunch of random servers invite the bot and generate traffic._
 
 ### When the bot's ready to invite...
 
@@ -78,7 +80,7 @@ The bot will need to have the following permissions:
 - **Mention Everyone**: Required so that the bot can ping the "all notifications" role, plus the roles that correspond to various servers, if it finds that an alert's user is present in those servers.
 - **Attach Files**: Required so that the bot can post images submitted by users of the slash command as evidence for an alert.
 
-Note that if you're concerned about granting these permissions globally, you can choose to instead just grant the permissions for the bot's role only in the channel where the bot will post new alerts, and the bot will still work correctly. 
+If you're concerned about granting these permissions globally, you can choose to instead just grant the permissions for the bot's role only in the channel where the bot will post new alerts, and the bot will still work correctly. 
 
 _Note that if you do this, the names of the permissions in Discord's "Edit Channel -> Permissions" screen are different from the names given above; "Read Messages / View Channels" will appear as "View Channel", and "Mention Everyone" will appear as "Mention @everyone, @here, and All Roles"._
 

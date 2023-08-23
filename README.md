@@ -8,7 +8,7 @@ The bot's goal is to simplify the process of broadcasting an informative alert a
 
 ### `/alert`
 
-![Screenshot of the /alert command in use](https://github.com/jshumphrey/full_course_yellow/images/screenshot_1.png?raw=true)
+![Screenshot of the /alert command in use](/images/screenshot_1.png?raw=true)
 
 This command asks you for some information about a problematic user, then generates an alert message that gets broadcast to one or more servers that are configured to receive these alerts.
 

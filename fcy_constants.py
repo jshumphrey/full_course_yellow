@@ -15,8 +15,8 @@ LUX_DEV_MG = MonitoredGuild(
     MonitoredGuild.true_ale_handler,
     testing = True,
 )
+R_F1_MG = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler)
 
-R_F1_MG = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler, enabled = False)
 OF1D_MG = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler, enabled = False)
 NASCAR_MG = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
 LTL_MG = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler, enabled = False)

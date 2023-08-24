@@ -330,7 +330,7 @@ class FCYFunctionality(commands.Cog):
                 )
             ),
             ephemeral = True,
-            allowed_mentions = discord.AllowedMentions.none,
+            #allowed_mentions = discord.AllowedMentions.none,
         )
 
     async def send_alerts(

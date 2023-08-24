@@ -7,7 +7,7 @@ import discord  # This uses pycord, not discord.py
 from discord.ext import commands
 import logging
 import typing
-from typing import Optional
+from typing import Any, Optional
 
 import full_course_yellow as fcy
 import fcy_guilds
@@ -293,7 +293,8 @@ class FCYFunctionality(commands.Cog):
     async def send_self_alert(
         self,
         ctx: discord.ApplicationContext,
-        reason: Optional[str],
+        reason: Optional[str] = None,
+        **kwargs,  # Can include any additional kwargs to Interaction.send/send_message
     ) -> None:
         """Users may want to raise an alert against themselves to test the alert functionality.
         This use-case is supported, but with a few caveats: the alert is sent ephemerally, and
@@ -331,15 +332,17 @@ class FCYFunctionality(commands.Cog):
             ),
             ephemeral = True,
             delete_after = None,
+            **kwargs,
         )
 
     async def send_alerts(
         self,
         offending_actor: Actor,
         alerting_server_name: str,
-        alert_reason: Optional[str],
-        message_body: Optional[str],
+        alert_reason: Optional[str] = None,
+        message_body: Optional[str] = None,
         testing_guilds_only: bool = False,
+        **kwargs,  # Can include any additional kwargs to Interaction.send/send_message
     ) -> None:
         """This handles the process of sending a prepared alert out to ALL configured AlertGuilds."""
 
@@ -360,22 +363,29 @@ class FCYFunctionality(commands.Cog):
                         inline = False,
                     )
                 ),
+                **kwargs,
             )
 
     @commands.slash_command(
         name = "alert",
         description = "Raise an alert about a problematic user.",
         options = [
-            discord.Option( # pylint: disable = no-member
+            discord.Option(  # pylint: disable = no-member
                 name = "user_id",
                 description = "The Discord User ID of the user you're raising an alert for",
-                input_type = str,
+                input_type = discord.SlashCommandOptionType.string,
                 required = True,
             ),
-            discord.Option( # pylint: disable = no-member
+            discord.Option(  # pylint: disable = no-member
                 name = "reason",
                 description = "The reason for the alert",
-                input_type = str,
+                input_type = discord.SlashCommandOptionType.string,
+                required = False,
+            ),
+            discord.Option(  # pylint: disable = no-member
+                name = "attachments",
+                description = "Any screenshots or other attachments you might want to send along with the alert",
+                input_type = discord.SlashCommandOptionType.attachment,
                 required = False,
             ),
         ],
@@ -388,8 +398,14 @@ class FCYFunctionality(commands.Cog):
         ctx: discord.ApplicationContext,
         user_id: str,
         reason: Optional[str],
+        attachment: Optional[discord.Attachment],
     ) -> None:
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
+
+        message_kwargs: dict[str, Any] = {}
+
+        if attachment:
+            message_kwargs["file"] = attachment.to_file(spoiler = attachment.is_spoiler())
 
         # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
         if not user_id.isdigit():
@@ -399,7 +415,7 @@ class FCYFunctionality(commands.Cog):
         # If the user is creating an alert against themself, that's valid, but we have a separate
         # execution flow for that, which sends it ephemerally and doesn't ping anyone.
         if user_id == str(ctx.author.id):
-            await self.send_self_alert(ctx, reason)
+            await self.send_self_alert(ctx, reason, **message_kwargs)
             return
 
         # If the offending user is a server moderator, tell off the user about it.
@@ -421,6 +437,7 @@ class FCYFunctionality(commands.Cog):
             alert_reason = reason,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
             testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].testing, # type: ignore - we know that the Guild won't be None
+            **message_kwargs,
         )
 
         # When we go to respond, we don't know whether we had to ask the user for more information about the server.

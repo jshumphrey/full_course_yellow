@@ -14,12 +14,9 @@ from typing import Any
 import fcy_cogs
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
-logging.basicConfig(level=logging.DEBUG)
-fcy_logger = logging.getLogger("full_course_yellow")
+logging.basicConfig(level=logging.INFO)
+(fcy_logger := logging.getLogger("full_course_yellow")).setLevel(logging.DEBUG)
 pycord_logger = logging.getLogger("discord")
-(pycord_http_logger := logging.getLogger("discord.http")).setLevel(logging.INFO)
-(pycord_client_logger := logging.getLogger("discord.client")).setLevel(logging.INFO)
-pycord_gateway_logger = logging.getLogger("discord.gateway")
 
 TOKEN_FILENAME = "token.txt"
 INTENTS = discord.Intents.default()

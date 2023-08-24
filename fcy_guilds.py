@@ -3,7 +3,8 @@
 
 from __future__ import annotations
 
-import discord
+import discord  # This uses pycord, not discord.py
+from discord.ext import commands
 import logging
 import typing
 from typing import Callable, Optional
@@ -73,6 +74,14 @@ class AlertGuild(InstalledGuild):
         self.alert_channel_id = alert_channel_id
         self.general_notification_role_id = general_notification_role_id
         self.guild_notification_roles = guild_notification_roles or {}
+
+    def get_alert_channel(self) -> discord.TextChannel:
+        """Returns this AlertGuild's alert channel, after doing some error checking."""
+        if (channel := self.guild.get_channel(self.alert_channel_id)) is None:
+            raise commands.ChannelNotFound(str(self.alert_channel_id))
+        if not isinstance(channel, discord.TextChannel):
+            raise TypeError(f"{self.alert_channel_id} is not a text channel")
+        return channel  # This is guaranteed to be a valid TextChannel now
 
     def decorate_message_body(self, message_body: Optional[str]) -> str:
         """"Decorates" the provided message body by prepending this AlertGuild's

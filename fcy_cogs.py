@@ -290,6 +290,49 @@ class FCYFunctionality(commands.Cog):
 
         return base_embed
 
+    async def send_self_alert(
+        self,
+        ctx: discord.ApplicationContext,
+        reason: Optional[str],
+    ) -> None:
+        """Users may want to raise an alert against themselves to test the alert functionality.
+        This use-case is supported, but with a few caveats: the alert is sent ephemerally, and
+        it doesn't ping anyone."""
+
+        offending_actor = ctx.author
+        mutual_mgs = await self.get_mutual_monitored_guilds(offending_actor)
+        message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!"
+        base_embed = self.generate_base_alert_embed(
+            offending_actor,
+            alerting_server_name = await self.determine_alert_server(ctx),
+            alert_reason = reason,
+        )
+
+        if (alert_guild := fcy_constants.ENABLED_ALERT_GUILDS.get(ctx.guild.id)) is None:  # type: ignore - we know that the Guild won't be None
+            decorated_mgs = ", ".join([guild.name for guild in mutual_mgs])
+        else:
+            message_body = alert_guild.decorate_message_body(message_body)
+            decorated_mgs = alert_guild.decorate_mutual_guilds(mutual_mgs)
+
+        await ctx.respond(
+            content = "Since this alert is against yourself, the alert will be invisible and silent (no pings).",
+            ephemeral = True,
+            delete_after = 15,
+        )
+
+        await ctx.respond(
+            content = message_body,
+            embed = (
+                base_embed.add_field(
+                    name = "Motorsport servers with user",
+                    value = decorated_mgs,
+                    inline = False,
+                )
+            ),
+            ephemeral = True,
+            allowed_mentions = discord.AllowedMentions.none,
+        )
+
     async def send_alerts(
         self,
         offending_actor: Actor,
@@ -306,22 +349,18 @@ class FCYFunctionality(commands.Cog):
         for alert_guild in fcy_constants.ENABLED_ALERT_GUILDS.values():
             if testing_guilds_only is True and alert_guild.testing is False:
                 continue
-            if (channel := alert_guild.guild.get_channel(alert_guild.alert_channel_id)) is None:
-                raise commands.ChannelNotFound(str(alert_guild.alert_channel_id))
-            if not isinstance(channel, discord.TextChannel):
-                raise TypeError(f"{alert_guild.alert_channel_id} is not a text channel")
 
-            decorated_body = alert_guild.decorate_message_body(message_body)
-            decorated_embed = (
-                base_embed.copy()
-                .add_field(
-                    name = "Motorsport servers with user",
-                    value = alert_guild.decorate_mutual_guilds(mutual_mgs),
-                    inline = False,
-                )
+            await alert_guild.get_alert_channel().send(
+                content = alert_guild.decorate_message_body(message_body),
+                embed = (
+                    base_embed.copy()
+                    .add_field(
+                        name = "Motorsport servers with user",
+                        value = alert_guild.decorate_mutual_guilds(mutual_mgs),
+                        inline = False,
+                    )
+                ),
             )
-
-            await channel.send(content = decorated_body, embed = decorated_embed)
 
     @commands.slash_command(
         name = "alert",
@@ -357,7 +396,13 @@ class FCYFunctionality(commands.Cog):
             await self.send_non_id_user_id_error_message(ctx)
             return
 
-        # Make sure the user isn't a moderator.
+        # If the user is creating an alert against themself, that's valid, but we have a separate
+        # execution flow for that, which sends it ephemerally and doesn't ping anyone.
+        if user_id == str(ctx.author.id):
+            await self.send_self_alert(ctx, reason)
+            return
+
+        # If the offending user is a server moderator, tell off the user about it.
         # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
         if user_id not in fcy_constants.TESTING_USER_IDS and user_id in self.alert_guild_members:
             await self.send_moderator_error_message(ctx)
@@ -375,7 +420,7 @@ class FCYFunctionality(commands.Cog):
             alerting_server_name = await self.determine_alert_server(ctx),
             alert_reason = reason,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
-            testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].testing, # type: ignore - we trust that the guild ID is valid
+            testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].testing, # type: ignore - we know that the Guild won't be None
         )
 
         # When we go to respond, we don't know whether we had to ask the user for more information about the server.

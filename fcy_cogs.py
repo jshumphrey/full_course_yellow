@@ -46,9 +46,9 @@ class FCYFunctionality(commands.Cog):
         """Execute a number of tasks that need to happen at the bot's startup."""
         self.check_populate_installed_guilds()
         await self.populate_alert_guild_members()
-        fcy_logger.info("FCYFunctionality.on_ready has completed successfully.")
         fcy_logger.debug(f"Enabled MonitoredGuilds: {[g.name for g in fcy_constants.ENABLED_MONITORED_GUILDS.values()]}")
         fcy_logger.debug(f"Enabled AlertGuilds: {[g.name for g in fcy_constants.ENABLED_ALERT_GUILDS.values()]}")
+        fcy_logger.info("FCYFunctionality.on_ready has completed successfully.")
 
     @commands.Cog.listener()
     async def on_audit_log_entry(self, entry: discord.AuditLogEntry) -> None:

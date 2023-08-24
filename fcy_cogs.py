@@ -382,12 +382,6 @@ class FCYFunctionality(commands.Cog):
                 input_type = discord.SlashCommandOptionType.string,
                 required = False,
             ),
-            discord.Option(  # pylint: disable = no-member
-                name = "attachment",
-                description = "A screenshot or other attachment you might want to send along with the alert",
-                input_type = discord.Attachment,
-                required = False,
-            ),
         ],
         ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
         guild_only = True,
@@ -398,14 +392,10 @@ class FCYFunctionality(commands.Cog):
         ctx: discord.ApplicationContext,
         user_id: str,
         reason: Optional[str],
-        attachment: Optional[discord.Attachment],
     ) -> None:
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 
         message_kwargs: dict[str, Any] = {}
-
-        if attachment:
-            message_kwargs["file"] = attachment.to_file(spoiler = attachment.is_spoiler())
 
         # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
         if not user_id.isdigit():

@@ -2,7 +2,7 @@
 
 This is a Discord bot designed to help moderators of affiliated Discord servers alert one another about problematic users that might be present in several of the affiliated servers.
 
-The bot's goal is to simplify the process of broadcasting an informative alert about the user, including automating the process of checking a number of servers to see whether the user is a member of any of them.
+The bot's goal is to simplify the process of broadcasting an informative alert about offending user, including automating the process of checking a number of servers to see whether the user is a member of any of them.
 
 ## Slash Commands
 
@@ -14,14 +14,14 @@ This command asks you for some information about a problematic user, then genera
 
 When `/alert` is used, the bot will scan all of the servers it's monitoring, checking to see if the user is in any of them. The alert message it creates will include a list of any servers where it detected the user, and will ping the respective roles for those servers in the alert message. (If it doesn't detect the user in any of the servers, it'll mention that, too.)
 
-`/alert` also allows a server that receives alert broadcasts to set up a role for users to opt into; if configured, this role will be pinged every time a new alert is broadcast, regardless of which server(s) the offending user was detected in. (Users might want to do this so that even if the offending user isn't in their server yet, they'll still get pinged about the alert so that they know to preemptively ban them from joining.)
+`/alert` also allows a server that receives alert broadcasts to set up a role for users to opt into; if configured, this role will be pinged every time a new alert is broadcast, regardless of which server(s) the offending user was detected in. (Moderators might want to do this so that they still receive advance notice even if the offending user isn't in their server yet, allowing them to _preemptively_ ban the user from joining.)
 
 #### Options for `/alert`
 
-- `user_id`: The Discord User ID for the user you're raising an alert about. Note that this needs to be the User **ID** (a long number that looks something like `1086293154304634910`), not the Discord username (`@snowcultscuffle`) or the Discord display name (`Lux's Dev/Testing Account`).
-- `reason`: The reason you're raising an alert for this user. Add as much text as you want.
+- `user_id`: The Discord User ID for the user you're raising an alert about. Note that this needs to be the User ***ID*** (a long number that looks something like `1086293154304634910`), not the Discord username (`@snowcultscuffle`) or the Discord display name (`Lux's Dev/Testing Account`).
+- `reason` (Optional): The reason you're raising an alert for this user. Add as much text as you want.
 
-Once you use `/alert`, the bot will try to automatically determine which server you're raising the alert for, based on the roles you have in the server. If it can't figure that out (either because you don't have any of the roles it's looking for, or because you have more than one of them), it'll bring up a dropdown asking you to choose one. 
+The bot will try to automatically determine which server you're raising the alert for, based on the roles you have in the server where you used the slash command. If it can't figure that out (either because you don't have any of the roles it's looking for, or because you have more than one of them), it'll bring up a dropdown asking you to choose one. 
 
 Right now, the `/alert` command is only available in Alert servers, not Monitored servers. (See [How the Bot Works](#how-the-bot-works) below for more details on the different kinds of servers.)
 
@@ -41,12 +41,12 @@ _I recognize that this is all a bit silly, but considering that the bot is being
 
 Once you get the green light that the bot's been made public, you can go ahead and click through on one of the links below. These invite links are pre-populated with the bare minimum permissions required for the bot to do its job - see below for more details.
 
-- If you're intending for the server to be a Monitored server, use [this link](https://discord.com/api/oauth2/authorize?client_id=1105933971264647168&permissions=0&scope=bot)
-- If you're intending for the server to be an Alert server, use [this link](https://discord.com/api/oauth2/authorize?client_id=1105933971264647168&permissions=166912&scope=bot)
+- To invite the bot to a Monitored server, use [this link](https://discord.com/api/oauth2/authorize?client_id=1105933971264647168&permissions=0&scope=bot)
+- To invite the bot to an Alert server, use [this link](https://discord.com/api/oauth2/authorize?client_id=1105933971264647168&permissions=166912&scope=bot)
 
 (If you don't know what type of server you're inviting it to, you should probably read [the section below on how the bot works](#how-the-bot-works) 😉)
 
-Also, to be clear, regardless of which type of server you're inviting it to, there's nothing you need to do on your end to configure that! That's all handled by [some configuration parameters in the bot's code](fcy_constants.py), so as part of the installation, I'll extend the configuration to add in some information about your server.
+Also, to be clear, regardless of which type of server you're inviting it to, there's nothing you need to do on your end to configure that! That's all handled by [some configuration parameters in the bot's code](fcy_constants.py), so as part of the installation, I'll add a bit of code to give the bot some information about your server and how you want it set up.
 
 ## How the Bot Works
 
@@ -54,9 +54,9 @@ In general, there are two different types of servers that invite this bot - "Mon
 
 ### Monitored Servers
 
-"Monitored" servers are servers where the bot is invited simply to be able to look through the server's members. 
+"Monitored" servers are servers where the bot is invited for the sole purpose of scanning the server's members. 
 
-When a user has an alert raised against them, the bot will sweep through all of its Monitored servers, checking to see if that user is present in any of the servers. The alert that gets broadcast will include a list of any Monitored servers that the user is currently a member of, and it'll ping the respective role(s) for that server's admins.
+When a user has an alert raised against them, the bot will sweep through all of its Monitored servers, checking to see if that user is present in any of the servers. The alert that gets broadcast will include a list of any Monitored servers that the user is currently a member of, and it'll ping the respective roles for servers in which the user was detected.
 
 #### Required Permissions for Monitored Servers
 
@@ -74,11 +74,12 @@ _I get extremely frustrated with bot developers that suggest that you should jus
 
 Alert servers do need a few permissions for the bot to function properly, since in Alert servers, the bot is actually "doing things."
 
-The bot will need to have the following permissions:
+The bot will need to have the permissions listed below. If the channel where it'll be posting alerts isn't visible to all users, it'll need the View Channels permission in that specific channel as well.
+
 - **Read Messages / View Channels**: Required so that the bot can access the channel it'll be sending alerts in.
 - **Send Messages**: Required so that the bot can actually send its alert messages.
 - **Mention Everyone**: Required so that the bot can ping the "all notifications" role, plus the roles that correspond to various servers, if it finds that an alert's user is present in those servers.
-- **Attach Files**: Required so that the bot can post images submitted by users of the slash command as evidence for an alert.
+- **Attach Files**: Required so that the bot can post images submitted via the slash command as "evidence" for an alert.
 
 If you're concerned about granting these permissions globally, you can choose to instead just grant the permissions for the bot's role only in the channel where the bot will post new alerts, and the bot will still work correctly. 
 

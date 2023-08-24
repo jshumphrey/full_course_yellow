@@ -383,9 +383,9 @@ class FCYFunctionality(commands.Cog):
                 required = False,
             ),
             discord.Option(  # pylint: disable = no-member
-                name = "attachments",
-                description = "Any screenshots or other attachments you might want to send along with the alert",
-                input_type = discord.SlashCommandOptionType.attachment,
+                name = "attachment",
+                description = "A screenshot or other attachment you might want to send along with the alert",
+                input_type = discord.Attachment,
                 required = False,
             ),
         ],

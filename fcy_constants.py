@@ -16,12 +16,12 @@ LUX_DEV_MG = MonitoredGuild(
     testing = True,
 )
 R_F1_MG = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler)
+OF1D_MG = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler)
 
-OF1D_MG = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler, enabled = False)
+MCLAREN_MG = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler, enabled = False)
 NASCAR_MG = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
 LTL_MG = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler, enabled = False)
 RED_BULL_MG = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", MonitoredGuild.placeholder_ale_handler, enabled = False)
-MCLAREN_MG = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler, enabled = False)
 R_WEC_MG = MonitoredGuild(193548511126487040, "/r/WEC", MonitoredGuild.placeholder_ale_handler, enabled = False)
 IMSA_MG = MonitoredGuild(878844647173132359, "IMSA", MonitoredGuild.placeholder_ale_handler, enabled = False)
 EXTREME_E_MG = MonitoredGuild(830080368089890887, "Extreme E", MonitoredGuild.placeholder_ale_handler, enabled = False)

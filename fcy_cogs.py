@@ -370,17 +370,17 @@ class FCYFunctionality(commands.Cog):
         name = "alert",
         description = "Raise an alert about a problematic user.",
         options = [
-            discord.Option(  # pylint: disable = no-member
+            discord.commands.Option(
                 name = "user_id",
                 description = "The Discord User ID of the user you're raising an alert for",
                 required = True,
             ),
-            discord.Option(  # pylint: disable = no-member
+            discord.commands.Option(
                 name = "reason",
                 description = "The reason for the alert",
                 required = False,
             ),
-            discord.Option(  # pylint: disable = no-member
+            discord.commands.Option(
                 name = "attachment",
                 description = "A screenshot or other attachment you might want to send along with the alert",
                 required = False,

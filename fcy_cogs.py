@@ -386,7 +386,7 @@ class FCYFunctionality(commands.Cog):
                 name = "attachment",
                 description = "A screenshot or other attachment you might want to send along with the alert",
                 input_type = discord.Attachment,
-                #required = False,
+                required = False,
             ),
         ],
         ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
@@ -398,8 +398,7 @@ class FCYFunctionality(commands.Cog):
         ctx: discord.ApplicationContext,
         user_id: str,
         reason: Optional[str],
-        #attachment: Optional[discord.Attachment],
-        attachment: discord.Attachment,
+        attachment: Optional[discord.Attachment],
     ) -> None:
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 

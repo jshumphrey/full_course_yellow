@@ -448,6 +448,18 @@ class FCYFunctionality(commands.Cog):
         except RuntimeError:
             await ctx.interaction.edit_original_response(content = response_message, delete_after = 10, view = None)
 
+    @commands.slash_command()
+    async def attachment_test(
+        self,
+        ctx: discord.ApplicationContext,
+        attachment: discord.Attachment,
+    ) -> None:
+        attachment_file = attachment.to_file(spoiler = attachment.is_spoiler())
+        await ctx.respond(
+            content = "Here's the file you sent!",
+            file = attachment_file,
+        )
+
 
 class ServerSelectView(discord.ui.View):
     """This view provides a way to ask the user for more information about which server a new alert should be

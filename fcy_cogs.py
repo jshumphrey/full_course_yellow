@@ -449,11 +449,12 @@ class FCYFunctionality(commands.Cog):
     async def attachment_test(
         self,
         ctx: discord.ApplicationContext,
+        content_to_send: str,
         attachment: discord.Attachment,
     ) -> None:
         attachment_file = attachment.to_file(spoiler = attachment.is_spoiler())
         await ctx.respond(
-            content = "Here's the file you sent!",
+            content = content_to_send,
             file = attachment_file,
         )
 

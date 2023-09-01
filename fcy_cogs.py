@@ -452,6 +452,7 @@ class FCYFunctionality(commands.Cog):
         content_to_send: str,
         attachment: discord.Attachment,
     ) -> None:
+        """Testing to see whether adding a docstring breaks the example"""
         attachment_file = attachment.to_file(spoiler = attachment.is_spoiler())
         await ctx.respond(
             content = content_to_send,

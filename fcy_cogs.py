@@ -369,33 +369,40 @@ class FCYFunctionality(commands.Cog):
     @commands.slash_command(
         name = "alert",
         description = "Raise an alert about a problematic user.",
-        options = [
-            discord.Option(  # pylint: disable = no-member
-                name = "user_id",
-                description = "The Discord User ID of the user you're raising an alert for",
-                input_type = discord.SlashCommandOptionType.string,
-                required = True,
-            ),
-            discord.Option(  # pylint: disable = no-member
-                name = "reason",
-                description = "The reason for the alert",
-                input_type = discord.SlashCommandOptionType.string,
-                required = False,
-            ),
-        ],
         ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
         guild_only = True,
         cooldown = None,
+    )
+    @discord.commands.option(
+        "user_id",
+        type = str,
+        description = "The Discord User ID of the user you're raising an alert for"
+    )
+    @discord.commands.option(
+        "reason",
+        type = str,
+        description = "The reason for the alert",
+        required = False,
+    )
+    @discord.commands.option(
+        "attachment",
+        type = discord.Attachment,
+        description = "A screenshot or other attachment you might want to include with the alert",
+        required = False,
     )
     async def slash_alert(
         self,
         ctx: discord.ApplicationContext,
         user_id: str,
         reason: Optional[str],
+        attachment: Optional[discord.Attachment],
     ) -> None:
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 
         message_kwargs: dict[str, Any] = {}
+
+        if attachment:
+            message_kwargs["file"] = await attachment.to_file(spoiler = attachment.is_spoiler())
 
         # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
         if not user_id.isdigit():

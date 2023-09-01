@@ -373,6 +373,9 @@ class FCYFunctionality(commands.Cog):
         guild_only = True,
         cooldown = None,
     )
+    @discord.commands.option("user_id", description = "The Discord User ID of the user you're raising an alert for")
+    @discord.commands.option("reason", description = "The reason for the alert")
+    @discord.commands.option("attachment", description = "A screenshot or other attachment you might want to include with the alert")
     async def slash_alert(
         self,
         ctx: discord.ApplicationContext,

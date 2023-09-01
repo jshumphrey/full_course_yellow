@@ -373,12 +373,21 @@ class FCYFunctionality(commands.Cog):
         guild_only = True,
         cooldown = None,
     )
-    @discord.commands.option("user_id", description = "The Discord User ID of the user you're raising an alert for")
-    @discord.commands.option("reason", description = "The reason for the alert")
+    @discord.commands.option(
+        "user_id",
+        type = str,
+        description = "The Discord User ID of the user you're raising an alert for"
+    )
+    @discord.commands.option(
+        "reason",
+        type = str,
+        description = "The reason for the alert",
+        required = False,
+    )
     @discord.commands.option(
         "attachment",
+        type = discord.Attachment,
         description = "A screenshot or other attachment you might want to include with the alert",
-        input_type = discord.Attachment,
         required = False,
     )
     async def slash_alert(
@@ -435,20 +444,6 @@ class FCYFunctionality(commands.Cog):
             await ctx.send_response(content = response_message, delete_after = 10, ephemeral = True)
         except RuntimeError:
             await ctx.interaction.edit_original_response(content = response_message, delete_after = 10, view = None)
-
-    @commands.slash_command()
-    async def attachment_test(
-        self,
-        ctx: discord.ApplicationContext,
-        content_to_send: str,
-        attachment: discord.Attachment,
-    ) -> None:
-        """Testing to see whether adding a docstring breaks the example"""
-        attachment_file = attachment.to_file(spoiler = attachment.is_spoiler())
-        await ctx.respond(
-            content = content_to_send,
-            file = attachment_file,
-        )
 
 
 class ServerSelectView(discord.ui.View):

@@ -369,27 +369,13 @@ class FCYFunctionality(commands.Cog):
     @commands.slash_command(
         name = "alert",
         description = "Raise an alert about a problematic user.",
-        options = [
-            discord.commands.Option(
-                name = "user_id",
-                description = "The Discord User ID of the user you're raising an alert for",
-                required = True,
-            ),
-            discord.commands.Option(
-                name = "reason",
-                description = "The reason for the alert",
-                required = False,
-            ),
-            discord.commands.Option(
-                name = "attachment",
-                description = "A screenshot or other attachment you might want to send along with the alert",
-                required = False,
-            ),
-        ],
         ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
         guild_only = True,
         cooldown = None,
     )
+    @discord.commands.option("user_id", description = "The Discord User ID of the user you're raising an alert for")
+    @discord.commands.option("reason", description = "The reason for the alert")
+    @discord.commands.option("attachment", description = "A screenshot or other attachment you might want to include with the alert")
     async def slash_alert(
         self,
         ctx: discord.ApplicationContext,

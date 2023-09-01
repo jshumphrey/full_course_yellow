@@ -402,7 +402,7 @@ class FCYFunctionality(commands.Cog):
         message_kwargs: dict[str, Any] = {}
 
         if attachment:
-            message_kwargs["file"] = attachment.to_file(spoiler = attachment.is_spoiler())
+            message_kwargs["file"] = await attachment.to_file(spoiler = attachment.is_spoiler())
 
         # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
         if not user_id.isdigit():

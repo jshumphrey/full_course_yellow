@@ -373,19 +373,16 @@ class FCYFunctionality(commands.Cog):
             discord.Option(  # pylint: disable = no-member
                 name = "user_id",
                 description = "The Discord User ID of the user you're raising an alert for",
-                input_type = discord.SlashCommandOptionType.string,
                 required = True,
             ),
             discord.Option(  # pylint: disable = no-member
                 name = "reason",
                 description = "The reason for the alert",
-                input_type = discord.SlashCommandOptionType.string,
                 required = False,
             ),
             discord.Option(  # pylint: disable = no-member
                 name = "attachment",
                 description = "A screenshot or other attachment you might want to send along with the alert",
-                input_type = discord.Attachment,
                 required = False,
             ),
         ],

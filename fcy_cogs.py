@@ -22,7 +22,7 @@ class FCYFunctionality(commands.Cog):
 
     alert_guild_members: set[str]
 
-    def __init__(self, bot: fcy.FCYBot):
+    def __init__(self, bot: fcy.FCYBot) -> None:
         self.bot = bot
         self.alert_guild_members = set()
 
@@ -33,7 +33,7 @@ class FCYFunctionality(commands.Cog):
             self.alert_guild_members.add(str(member.id))
 
     @commands.Cog.listener()
-    async def on_raw_member_remove(self, payload: discord.RawMemberRemoveEvent):
+    async def on_raw_member_remove(self, payload: discord.RawMemberRemoveEvent) -> None:
         """When a member leaves, if the left guild is an AlertGuild, update alert_guild_members.
         This needs to be the RAW member remove event because the normal member remove event
         depends on the member cache, which we're not using."""
@@ -109,7 +109,7 @@ class FCYFunctionality(commands.Cog):
                     f"Attempted to fetch a member from MonitoredGuild {monitored_guild.name}, "
                     "but permission was denied to perform this action!"
                 )
-            except discord.HTTPException:
+            except discord.HTTPException:  # This is thrown by discord in the event that the user is not found
                 pass  # If we don't find them, that's fine; just move on
 
         fcy_logger.debug(f"Mutual guilds for actor ID {actor.id}: {mutual_mgs}")
@@ -160,7 +160,7 @@ class FCYFunctionality(commands.Cog):
                 "Remember that this needs to be a user ***ID*** - a big number, not text."
             ),
             ephemeral = True,
-            delete_after = 15,
+            delete_after = 30,
         )
         fcy_logger.info(
             f"Sent non-ID User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
@@ -172,10 +172,12 @@ class FCYFunctionality(commands.Cog):
         await ctx.respond(
             content = (
                 "The provided user ID belongs to a server moderator.\n"
-                "Please don't ping a bunch of roles just to make a joke."
+                "Please don't ping a bunch of roles just to make a joke.\n\n"
+                "If you just want to test out the bot, send an alert against **your own User ID**.\n"
+                "The bot will detect that it's a \"self-alert\" and send an alert that only you can see."
             ),
             ephemeral = True,
-            delete_after = 15,
+            delete_after = 60,
         )
         fcy_logger.info(
             f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
@@ -191,18 +193,14 @@ class FCYFunctionality(commands.Cog):
                 "Please double-check that you typed or pasted it correctly."
             ),
             ephemeral = True,
-            delete_after = 15,
+            delete_after = 30,
         )
         fcy_logger.info(
             f"Sent User ID not found error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
             f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
         )
 
-    async def fetch_most_recent_bans(
-        self,
-        guild: discord.Guild,
-        max_bans: int = 5,
-    ) -> list[discord.AuditLogEntry]:
+    async def fetch_most_recent_bans(self, guild: discord.Guild, max_bans: int = 5) -> list[discord.AuditLogEntry]:
         """This wraps the process of retrieving the most recent Audit Log events for bans in the server."""
         return await guild.audit_logs(action = discord.AuditLogAction.ban, limit = max_bans).flatten()
 
@@ -268,17 +266,14 @@ class FCYFunctionality(commands.Cog):
         alerting_server_name: str,
         alert_reason: Optional[str],
         timestamp: Optional[datetime.datetime] = None,
-    ):
+    ) -> discord.Embed:
         """This handles the process of creating the embed for a "New Alert" message.
 
         The embed generated is the "base embed" - i.e., it will not contain any references to roles
         for a particular server, since we don't yet know which server this alert is being sent to."""
 
         base_embed = (
-            discord.Embed(
-                type = "rich",
-                timestamp = timestamp or datetime.datetime.now(),
-            )
+            discord.Embed(type = "rich", timestamp = timestamp or datetime.datetime.now())
             .set_author(
                 name = self.bot.pprint_actor_name(offending_actor),
                 icon_url = offending_actor.display_avatar.url,
@@ -310,26 +305,21 @@ class FCYFunctionality(commands.Cog):
         )
 
         if (alert_guild := fcy_constants.ENABLED_ALERT_GUILDS.get(ctx.guild.id)) is None:  # type: ignore - we know that the Guild won't be None
+            decorated_body = message_body
             decorated_mgs = ", ".join([guild.name for guild in mutual_mgs])
         else:
-            message_body = alert_guild.decorate_message_body(message_body)
+            decorated_body = alert_guild.decorate_message_body(message_body)
             decorated_mgs = alert_guild.decorate_mutual_guilds(mutual_mgs)
 
         await ctx.respond(
-            content = "Since this alert is against yourself, the alert will be invisible and silent (no pings).",
+            content = "Since this alert is against yourself, it's visible only to you.",
             ephemeral = True,
-            delete_after = 15,
+            delete_after = 30,
         )
 
         await ctx.respond(
-            content = message_body,
-            embed = (
-                base_embed.add_field(
-                    name = "Motorsport servers with user",
-                    value = decorated_mgs,
-                    inline = False,
-                )
-            ),
+            content = decorated_body,
+            embed = (base_embed.add_field(name = "Motorsport servers with user", value = decorated_mgs, inline = False)),
             ephemeral = True,
             delete_after = None,
             **kwargs,

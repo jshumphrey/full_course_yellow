@@ -110,6 +110,7 @@ class AlertGuild(InstalledGuild):
         )
         return result
 
+
 class MonitoredGuild(InstalledGuild):
     """A MonitoredGuild is a type of InstalledGuild that is monitored for new bans.
 

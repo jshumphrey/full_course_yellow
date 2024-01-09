@@ -95,17 +95,10 @@ class AlertGuild(InstalledGuild):
         """"Decorates" the provided list of mutual guilds by transforming the guilds in it into
         role pings for this AlertGuild's role for that guild, based on guild_notification_roles."""
 
-        from fcy_constants import ENABLED_MONITORED_GUILDS # pylint: disable = import-outside-toplevel
-
         if not mutual_guilds:
-            emg_names = [g.name for g in ENABLED_MONITORED_GUILDS.values()]
-            emg_name_string = f"{', '.join(emg_names[:-1])}, or {emg_names[-1]}"
-            result = (
-                f"User not present in {emg_name_string}.\n"
-                "To have your server searched for these users, message Lux in <#1136415420186898577>."
-            )
+            decoration = "[Not found in any scanned server]"
         else:
-            result = ", ".join(
+            decoration = ", ".join(
                 guild.name if guild.id not in self.guild_notification_roles
                 else f"<@&{self.guild_notification_roles[guild.id]}>"
                 for guild in mutual_guilds
@@ -113,9 +106,9 @@ class AlertGuild(InstalledGuild):
 
         fcy_logger.debug(
             f"AlertGuild {self.name} called to decorate mutual_guilds with Guild IDs: "
-            f"{[g.id for g in mutual_guilds]}. Result: {result}."
+            f"{[g.id for g in mutual_guilds]}. Result: {decoration}."
         )
-        return result
+        return decoration
 
 
 class MonitoredGuild(InstalledGuild):

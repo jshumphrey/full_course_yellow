@@ -9,6 +9,7 @@ import logging
 import typing
 from typing import Callable, Optional
 
+import fcy_constants
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
 fcy_logger = logging.getLogger("full_course_yellow")
@@ -96,7 +97,12 @@ class AlertGuild(InstalledGuild):
         role pings for this AlertGuild's role for that guild, based on guild_notification_roles."""
 
         if not mutual_guilds:
-            result = "[Not found in any monitored server]"
+            emg_names = [g.name for g in fcy_constants.ENABLED_MONITORED_GUILDS.values()]
+            emg_name_string = f"{', '.join(emg_names[:-1])}, or {emg_names[-1]}"
+            result = (
+                f"User not present in {emg_name_string}.\n"
+                "To have your server searched for these users, message Lux in <#1136415420186898577>."
+            )
         else:
             result = ", ".join(
                 guild.name if guild.id not in self.guild_notification_roles

@@ -9,7 +9,6 @@ import logging
 import typing
 from typing import Callable, Optional
 
-import fcy_constants
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
 fcy_logger = logging.getLogger("full_course_yellow")
@@ -96,8 +95,10 @@ class AlertGuild(InstalledGuild):
         """"Decorates" the provided list of mutual guilds by transforming the guilds in it into
         role pings for this AlertGuild's role for that guild, based on guild_notification_roles."""
 
+        from fcy_constants import ENABLED_MONITORED_GUILDS # pylint: disable = import-outside-toplevel
+
         if not mutual_guilds:
-            emg_names = [g.name for g in fcy_constants.ENABLED_MONITORED_GUILDS.values()]
+            emg_names = [g.name for g in ENABLED_MONITORED_GUILDS.values()]
             emg_name_string = f"{', '.join(emg_names[:-1])}, or {emg_names[-1]}"
             result = (
                 f"User not present in {emg_name_string}.\n"

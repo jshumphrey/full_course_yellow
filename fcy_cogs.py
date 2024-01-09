@@ -273,7 +273,7 @@ class FCYFunctionality(commands.Cog):
         for a particular server, since we don't yet know which server this alert is being sent to."""
 
         emg_names = ", ".join([g.name for g in fcy_constants.ENABLED_MONITORED_GUILDS.values() if g.testing is False])
-        emg_string = f"{emg_names}\n\nTo include your server in this list, message Lux in #bot."
+        emg_string = f"{emg_names}\n(To include your server in this list, message Lux in #bot.)"
 
         base_embed = (
             discord.Embed(type = "rich", timestamp = timestamp or datetime.datetime.now())

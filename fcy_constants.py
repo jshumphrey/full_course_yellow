@@ -17,6 +17,7 @@ LUX_DEV_MG = MonitoredGuild(
 )
 R_F1_MG = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.placeholder_ale_handler)
 OF1D_MG = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler)
+WILLIAMS_MG = MonitoredGuild(1135611684560572466, "Williams Gaming Club", MonitoredGuild.placeholder_ale_handler)
 
 MCLAREN_MG = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler, enabled = False)
 NASCAR_MG = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)

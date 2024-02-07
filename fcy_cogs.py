@@ -277,15 +277,12 @@ class FCYFunctionality(commands.Cog):
         emg_string = f"{emg_names}\n(To include your server in this list, message Lux in #bot.)"
 
         base_embed = (
-            discord.Embed(
-                type = "rich",
-                url = attachment_url,
-                timestamp = timestamp or datetime.datetime.now()
-            )
+            discord.Embed(type = "rich", timestamp = timestamp or datetime.datetime.now())
             .set_author(
                 name = self.bot.pprint_actor_name(offending_actor),
                 icon_url = offending_actor.display_avatar.url,
             )
+            .set_image(url = attachment_url)
             .set_footer(text = f"Offending user's ID: {offending_actor.id}")
             .add_field(name = "Relevant server", value = alerting_server_name, inline = False)
             .add_field(name = "Reason for alert", value = alert_reason or "[No reason provided]", inline = False)

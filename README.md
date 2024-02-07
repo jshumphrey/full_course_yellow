@@ -44,7 +44,7 @@ Once you get the green light that the bot's been made public, you can go ahead a
 - To invite the bot to a Monitored server, use [this link](https://discord.com/api/oauth2/authorize?client_id=1105933971264647168&permissions=0&scope=bot)
 - To invite the bot to an Alert server, use [this link](https://discord.com/api/oauth2/authorize?client_id=1105933971264647168&permissions=166912&scope=bot)
 
-(If you don't know what type of server you're inviting it to, you should probably read [the section below on how the bot works](#how-the-bot-works) 😉)
+(For more information on what "Monitored" and "Alert" servers are, see [the section below on how the bot works](#how-the-bot-works))
 
 Also, to be clear, regardless of which type of server you're inviting it to, there's nothing you need to do on your end to configure that! That's all handled by [some configuration parameters in the bot's code](fcy_constants.py), so as part of the installation, I'll add a bit of code to give the bot some information about your server and how you want it set up.
 
@@ -62,9 +62,7 @@ When a user has an alert raised against them, the bot will sweep through all of 
 
 For a Monitored server, the bot needs ***literally no permissions*** to do its job; all that's required is that the bot exist in the server, as if it were a normal user. It doesn't need to be able to send messages, mention any roles, or even view any channels.
 
-_If you're on the fence about whether you're comfortable inviting this thing into your server - which is an attitude I very much sympathize with, for the record - yes, I am trying to make the point that the bot can function perfectly fine even if you strip it of every single permission it could use to harm your server in any way._
-
-_I get extremely frustrated with bot developers that suggest that you should just grant their bot Administrator permissions so that "you'll never have to deal with permissions issues", and I've tried hard to keep the list of necessary permissions to the absolute bare minimum._
+_If you're on the fence about whether you're comfortable inviting this thing into your server (which I very much sympathize with, for the record), the bot can function perfectly fine even if you strip it of every single permission it could use to harm your server in any way._
 
 ### Alert Servers
 
@@ -94,10 +92,6 @@ _Note that if you do this, the names of the permissions in Discord's "Edit Chann
 This functionality is essentially already mostly set up, but I haven't turned it on yet because of the potential for (a), spamming the alert channels with information about bans that didn't actually need alerts raised, or (b), the bot automatically broadcasting sensitive/private moderation-log material to everyone.
 
 If/when we go ahead with this, the use-case will involve providing a slash command to the Monitored servers that they can use to _selectively_ raise an alert about a recent ban, rather than automatically publishing information for any new bans.
-
-#### Allow users to optionally upload files instead of / alongside an alert reason.
-
-This shouldn't be too difficult to set up; I just haven't done it yet.
 
 ### Things that need fixing or improvement
 

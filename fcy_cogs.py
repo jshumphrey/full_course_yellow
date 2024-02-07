@@ -296,7 +296,7 @@ class FCYFunctionality(commands.Cog):
         ctx: discord.ApplicationContext,
         alert_reason: Optional[str] = None,
         attachment_url: Optional[str] = None,
-        **kwargs,  # Can include any additional kwargs to Interaction.send/send_message
+        **message_kwargs,  # Can include any additional kwargs to Interaction.send/send_message
     ) -> None:
         """Users may want to raise an alert against themselves to test the alert functionality.
         This use-case is supported, but with a few caveats: the alert is sent ephemerally, and
@@ -305,9 +305,10 @@ class FCYFunctionality(commands.Cog):
         offending_actor = ctx.author
         mutual_mgs = await self.get_mutual_monitored_guilds(offending_actor)
         message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!"
+        alerting_server_name = await self.determine_alert_server(ctx)
         base_embed = self.generate_base_alert_embed(
             offending_actor,
-            alerting_server_name = await self.determine_alert_server(ctx),
+            alerting_server_name = alerting_server_name,
             alert_reason = alert_reason,
             attachment_url = attachment_url,
         )
@@ -330,7 +331,18 @@ class FCYFunctionality(commands.Cog):
             embed = (base_embed.add_field(name = "Scanned servers with user", value = decorated_mgs, inline = False)),
             ephemeral = True,
             delete_after = None,
-            **kwargs,
+            **message_kwargs,
+        )
+
+        # In addition to sending the alert back to the user, send the alert to the testing guids as well.
+        await self.send_alerts(
+            offending_actor = offending_actor,
+            alerting_server_name = alerting_server_name,
+            alert_reason = alert_reason,
+            attachment_url = attachment_url,
+            message_body = f"New **self**-alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
+            testing_guilds_only = True,
+            **message_kwargs,
         )
 
     async def send_alerts(

@@ -1,6 +1,6 @@
 """This file defines cogs for the Full Course Yellow bot, providing functionality
 that can be imported into the scope of a pycord Bot."""
-# pylint: disable = logging-not-lazy
+# pylint: disable = logging-not-lazy, too-many-arguments
 
 import datetime
 import discord  # This uses pycord, not discord.py
@@ -264,7 +264,8 @@ class FCYFunctionality(commands.Cog):
         self,
         offending_actor: Actor,
         alerting_server_name: str,
-        alert_reason: Optional[str],
+        alert_reason: Optional[str] = None,
+        attachment_url: Optional[str] = None,
         timestamp: Optional[datetime.datetime] = None,
     ) -> discord.Embed:
         """This handles the process of creating the embed for a "New Alert" message.
@@ -276,7 +277,11 @@ class FCYFunctionality(commands.Cog):
         emg_string = f"{emg_names}\n(To include your server in this list, message Lux in #bot.)"
 
         base_embed = (
-            discord.Embed(type = "rich", timestamp = timestamp or datetime.datetime.now())
+            discord.Embed(
+                type = "rich",
+                url = attachment_url,
+                timestamp = timestamp or datetime.datetime.now()
+            )
             .set_author(
                 name = self.bot.pprint_actor_name(offending_actor),
                 icon_url = offending_actor.display_avatar.url,
@@ -292,7 +297,8 @@ class FCYFunctionality(commands.Cog):
     async def send_self_alert(
         self,
         ctx: discord.ApplicationContext,
-        reason: Optional[str] = None,
+        alert_reason: Optional[str] = None,
+        attachment_url: Optional[str] = None,
         **kwargs,  # Can include any additional kwargs to Interaction.send/send_message
     ) -> None:
         """Users may want to raise an alert against themselves to test the alert functionality.
@@ -305,7 +311,8 @@ class FCYFunctionality(commands.Cog):
         base_embed = self.generate_base_alert_embed(
             offending_actor,
             alerting_server_name = await self.determine_alert_server(ctx),
-            alert_reason = reason,
+            alert_reason = alert_reason,
+            attachment_url = attachment_url,
         )
 
         if (alert_guild := fcy_constants.ENABLED_ALERT_GUILDS.get(ctx.guild.id)) is None:  # type: ignore - we know that the Guild won't be None
@@ -334,13 +341,19 @@ class FCYFunctionality(commands.Cog):
         offending_actor: Actor,
         alerting_server_name: str,
         alert_reason: Optional[str] = None,
+        attachment_url: Optional[str] = None,
         message_body: Optional[str] = None,
         testing_guilds_only: bool = False,
         **kwargs,  # Can include any additional kwargs to Interaction.send/send_message
     ) -> None:
         """This handles the process of sending a prepared alert out to ALL configured AlertGuilds."""
 
-        base_embed = self.generate_base_alert_embed(offending_actor, alerting_server_name, alert_reason)
+        base_embed = self.generate_base_alert_embed(
+            offending_actor = offending_actor,
+            alerting_server_name = alerting_server_name,
+            alert_reason = alert_reason,
+            attachment_url = attachment_url,
+        )
         mutual_mgs = await self.get_mutual_monitored_guilds(offending_actor)
 
         for alert_guild in fcy_constants.ENABLED_ALERT_GUILDS.values():
@@ -395,9 +408,6 @@ class FCYFunctionality(commands.Cog):
 
         message_kwargs: dict[str, Any] = {}
 
-        if attachment:
-            message_kwargs["file"] = await attachment.to_file(spoiler = attachment.is_spoiler())
-
         # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
         if not user_id.isdigit():
             await self.send_non_id_user_id_error_message(ctx)
@@ -406,7 +416,12 @@ class FCYFunctionality(commands.Cog):
         # If the user is creating an alert against themself, that's valid, but we have a separate
         # execution flow for that, which sends it ephemerally and doesn't ping anyone.
         if user_id == str(ctx.author.id):
-            await self.send_self_alert(ctx, reason, **message_kwargs)
+            await self.send_self_alert(
+                ctx,
+                alert_reason = reason,
+                attachment_url = attachment.url if attachment else None,
+                **message_kwargs
+            )
             return
 
         # If the offending user is a server moderator, tell off the user about it.
@@ -426,6 +441,7 @@ class FCYFunctionality(commands.Cog):
             offending_actor = solidified_actor,
             alerting_server_name = await self.determine_alert_server(ctx),
             alert_reason = reason,
+            attachment_url = attachment.url if attachment else None,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
             testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].testing, # type: ignore - we know that the Guild won't be None
             **message_kwargs,

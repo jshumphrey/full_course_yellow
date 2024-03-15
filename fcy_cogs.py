@@ -321,7 +321,10 @@ class FCYFunctionality(commands.Cog):
             decorated_mgs = alert_guild.decorate_mutual_guilds(mutual_mgs)
 
         await ctx.respond(
-            content = "Since this alert is against yourself, it's visible only to you.",
+            content = (
+                "This alert is being raised against your own User ID, so it's being treated as a test alert.\n\n"
+                "Since it's just a test, the alert is visible only to you, to avoid pinging people about it."
+            ),
             ephemeral = True,
             delete_after = 30,
         )

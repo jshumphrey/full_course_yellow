@@ -385,7 +385,7 @@ class FCYFunctionality(commands.Cog):
     @commands.slash_command(
         name = "alert",
         description = "Raise an alert about a problematic user.",
-        ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
+        guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
         guild_only = True,
         cooldown = None,
     )

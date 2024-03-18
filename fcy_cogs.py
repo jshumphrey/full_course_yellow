@@ -214,6 +214,24 @@ class FCYFunctionality(commands.Cog):
             f"({ban_ale.reason or '[No reason provided]'})"
         )[:100]  # These values can only be up to 100 characters long
 
+    def determine_command_environment(
+        self,
+        ctx: discord.ApplicationContext
+    ) -> fcy_guilds.MonitoredGuild | fcy_guilds.AlertGuild | discord.Guild | discord.DMChannel | discord.GroupChannel:
+        """Return the "environment" where the command was invoked.
+
+        This might be a DM or private-group channel, or it might be a full Guild, or it might be an InstalledGuild.
+
+        Note that this returns the actual environment itself - not the type of the environment, and not its ID.
+        """
+        if ctx.guild is not None:
+            return fcy_constants.ALL_ENABLED_GUILDS.get(ctx.guild.id, ctx.guild)
+        if ctx.channel is not None:
+            return typing.cast(discord.DMChannel | discord.GroupChannel, ctx.channel) # It MUST be one of these
+        raise commands.ChannelNotFound(
+            f"Unable to determine the command environment for the following context: {str(ctx)}"
+        )
+
     async def determine_alert_server(self, ctx: discord.ApplicationContext) -> str:
         """Attempt to determine the name of the server for the use of the `alert` slash command, from
         the application context alone. In many use-cases, this can be determined without ever having

@@ -287,7 +287,7 @@ class FCYFunctionality(commands.Cog):
         )
         selection_view = ServerSelectView(options)
 
-        await ctx.send_response(prompt, view = selection_view, ephemeral = True)
+        await ctx.respond(prompt, view = selection_view, ephemeral = True)
         await selection_view.wait()
         return selection_view.selection
 
@@ -464,27 +464,41 @@ class FCYFunctionality(commands.Cog):
             await self.send_non_id_user_id_error_message(ctx)
             return
 
+        # Make sure that we can actually find a User with the provided User ID.
+        try:
+            solidified_actor = await self.bot.solidify_actor_abstract(user_id)
+        except commands.UserNotFound:
+            await self.send_user_id_not_found_error_message(ctx)
+            return
+
+        is_self_alert: bool = solidified_actor == ctx.author  # This'll get reused in several places.
+
+        # If the offending user is a server moderator, tell off the user about it.
+        # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
+        if (
+            user_id in self.alert_guild_members  # The user is in an AlertGuild (which are private for moderators)
+            and user_id not in fcy_constants.TESTING_USER_IDS  # And this check hasn't been bypassed for testing purposes
+            and not is_self_alert  # And the user isn't raising a self alert (that's handled separately)
+        ):
+            await self.send_moderator_error_message(ctx)
+            return
+
+        ##########################################################################################
+        # If we can't respond quickly, we need to do a bunch of work before responding.
+        # This takes time, so we need to defer the response to the interaction while we work.
+        await ctx.defer(ephemeral = True, invisible = False)
+        # Everything that happens beneath this line is working with a DEFERRED ApplicationContext!
+        ##########################################################################################
+
         # If the user is creating an alert against themself, that's valid, but we have a separate
         # execution flow for that, which sends it ephemerally and doesn't ping anyone.
-        if user_id == str(ctx.author.id):
+        if is_self_alert:
             await self.send_self_alert(
                 ctx,
                 alert_reason = reason,
                 attachment_url = attachment.url if attachment else None,
                 **message_kwargs
             )
-            return
-
-        # If the offending user is a server moderator, tell off the user about it.
-        # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
-        if user_id not in fcy_constants.TESTING_USER_IDS and user_id in self.alert_guild_members:
-            await self.send_moderator_error_message(ctx)
-            return
-
-        try:
-            solidified_actor = await self.bot.solidify_actor_abstract(user_id)
-        except commands.UserNotFound:
-            await self.send_user_id_not_found_error_message(ctx)
             return
 
         # Once all checks have passed, we can proceed to create and send the alerts.
@@ -499,12 +513,13 @@ class FCYFunctionality(commands.Cog):
         )
 
         # When we go to respond, we don't know whether we had to ask the user for more information about the server.
-        # As a result, we need to try to respond normally first, then if that fails, edit the interaction response.
+        # As a result, we need to try edit the original response first (in case we sent the view), then respond normally
+        # if Discord raises an error that it can't find any original response (in case we never sent the view).
         response_message = "Successfully raised an alert."
         try:
-            await ctx.send_response(content = response_message, delete_after = 10, ephemeral = True)
-        except RuntimeError:
             await ctx.interaction.edit_original_response(content = response_message, delete_after = 10, view = None)
+        except discord.HTTPException:  # We never sent the ServerSelectView, so edit_original_response doesn't work
+            await ctx.respond(content = response_message, delete_after = 10, ephemeral = True)
 
 
 class ServerSelectView(discord.ui.View):

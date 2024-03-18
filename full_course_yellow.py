@@ -152,6 +152,13 @@ class FCYBot(discord.Bot):
         """This listener implements custom error handling for exceptions raised during the invocation
         of a Command. The primary goal is to clean up the exceptions that are printed out to the log."""
 
+        # In case the context had its response deferred, respond to it ephemerally so that it doesn't spin forever.
+        await context.respond(
+            content = "Your slash command was received, but an unknown error occurred while working on it.",
+            delete_after = 30,
+            ephemeral = True,
+        )
+
         try: # We need to intentially re-raise the exception so that the logger can pick up the traceback
             raise exception
         except commands.CommandError:

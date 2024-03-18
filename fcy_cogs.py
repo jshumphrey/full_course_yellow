@@ -184,6 +184,19 @@ class FCYFunctionality(commands.Cog):
             f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
         )
 
+    async def send_invalid_environment_error_message(self, ctx: discord.ApplicationContext) -> None:
+        """Send an error message to the user that they're not allowed to run the command they're running
+        from the environment they're running it from."""
+        await ctx.respond(
+            content = ("You have used this command from an invalid location."),
+            ephemeral = True,
+            delete_after = 60,
+        )
+        fcy_logger.info(
+            f"Sent invalid location error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+        )
+
     async def send_user_id_not_found_error_message(self, ctx: discord.ApplicationContext) -> None:
         """Send an error message to the user that the Discord User ID they provided could not be found."""
         user_id = self.bot.get_option_value(ctx, "user_id")
@@ -438,7 +451,15 @@ class FCYFunctionality(commands.Cog):
 
         message_kwargs: dict[str, Any] = {}
 
-        # Make sure `user_id` is an actual Discord User ID, and not a username or display name.
+        # First, check for some situations that can be easily and QUICKLY checked for and responded to.
+        # If we have to do any more work than "do a basic check and send a single response", we'll defer the response.
+
+        command_environment = self.determine_command_environment(ctx)
+        if not isinstance(command_environment, fcy_guilds.AlertGuild):
+            await self.send_invalid_environment_error_message(ctx)
+            return
+
+        # Make sure `user_id` looks like a Discord User ID (a string of digits), and not a username or display name.
         if not user_id.isdigit():
             await self.send_non_id_user_id_error_message(ctx)
             return

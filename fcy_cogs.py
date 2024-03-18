@@ -263,7 +263,10 @@ class FCYFunctionality(commands.Cog):
         if invoking_guild is None or invoking_guild.id not in fcy_constants.ALL_ENABLED_GUILDS:
             raise commands.GuildNotFound(str(invoking_guild.id) if invoking_guild else "[None]")
 
-        if invoking_guild.id in fcy_constants.ENABLED_MONITORED_GUILDS:
+        if (  # Excluding the testing guilds from this check allows the ServerSelectView to be tested more easily
+            invoking_guild.id in fcy_constants.ENABLED_MONITORED_GUILDS
+            and invoking_guild.id not in fcy_constants.ENABLED_TESTING_GUILDS
+        ):
             return fcy_constants.ENABLED_MONITORED_GUILDS[invoking_guild.id].name
 
         # At this point, the invoking guild must be an AlertGuild
@@ -508,7 +511,7 @@ class FCYFunctionality(commands.Cog):
             alert_reason = reason,
             attachment_url = attachment.url if attachment else None,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
-            testing_guilds_only = fcy_constants.ALL_GUILDS[ctx.guild.id].testing, # type: ignore - we know that the Guild won't be None
+            testing_guilds_only = ctx.guild.id in fcy_constants.ENABLED_TESTING_GUILDS, # type: ignore - we know that the Guild won't be None
             **message_kwargs,
         )
 

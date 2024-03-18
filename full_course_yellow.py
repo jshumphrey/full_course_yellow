@@ -164,7 +164,7 @@ class FCYBot(discord.Bot):
     async def on_application_command(self, ctx: discord.ApplicationContext) -> None:
         """This listener implements custom logging for whenever a Command is invoked."""
         fcy_logger.info(
-            f"{ctx.command.name} invoked by {self.pprint_actor_name(ctx.author)} ({ctx.author.id})"
+            f"{ctx.command.name} invoked by {self.pprint_actor_name(ctx.author)} ({ctx.author.id}) "
             f"in {ctx.guild.name if ctx.guild else 'DMs'} "
             f"at {self.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
         )

@@ -65,7 +65,7 @@ ALL_MONITORED_GUILDS: dict[GuildID, MonitoredGuild] = {
     mg_object.id: mg_object
     for mg_object in sorted(
         [obj for obj in locals().values() if isinstance(obj, MonitoredGuild)],
-        key = lambda mg_object: mg_object.name
+        key = lambda mg_object: mg_object.name.casefold()
     )
 }
 ENABLED_MONITORED_GUILDS = {mg_id: mg for mg_id, mg in ALL_MONITORED_GUILDS.items() if mg.enabled is True}
@@ -74,7 +74,7 @@ ALL_ALERT_GUILDS: dict[GuildID, AlertGuild] = {
     ag_object.id: ag_object
     for ag_object in sorted(
         [obj for obj in locals().values() if isinstance(obj, AlertGuild)],
-        key = lambda ag_object: ag_object.name
+        key = lambda ag_object: ag_object.name.casefold()
     )
 }
 ENABLED_ALERT_GUILDS = {ag_id: ag for ag_id, ag in ALL_ALERT_GUILDS.items() if ag.enabled is True}

@@ -19,8 +19,8 @@ R_F1_MG = MonitoredGuild(177387572505346048, "/r/formula1", MonitoredGuild.place
 OF1D_MG = MonitoredGuild(142082511902605313, "Formula One", MonitoredGuild.placeholder_ale_handler)
 WILLIAMS_MG = MonitoredGuild(1135611684560572466, "Williams Gaming Club", MonitoredGuild.placeholder_ale_handler)
 YES2_MG = MonitoredGuild(765047002156367873, "Yes2 Motorsports", MonitoredGuild.placeholder_ale_handler)
+MCLAREN_MG = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler)
 
-MCLAREN_MG = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler, enabled = False)
 NASCAR_MG = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
 LTL_MG = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler, enabled = False)
 RED_BULL_MG = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", MonitoredGuild.placeholder_ale_handler, enabled = False)

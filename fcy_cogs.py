@@ -402,10 +402,13 @@ class FCYFunctionality(commands.Cog):
         )
         mutual_mgs = await self.get_mutual_monitored_guilds(offending_actor)
 
-        for alert_guild in fcy_constants.ENABLED_ALERT_GUILDS.values():
-            if testing_guilds_only is True and alert_guild.testing is False:
-                continue
+        guilds_to_alert = [
+            ag for ag in fcy_constants.ENABLED_ALERT_GUILDS.values()
+            if not (testing_guilds_only is True and ag.testing is False)
+        ]
+        fcy_logger.debug(f"Preparing to send alerts to the following AlertGuilds: {[str(g) for g in guilds_to_alert]}")
 
+        for alert_guild in guilds_to_alert:
             await alert_guild.get_alert_channel().send(
                 content = alert_guild.decorate_message_body(message_body),
                 embed = (
@@ -418,6 +421,7 @@ class FCYFunctionality(commands.Cog):
                 ),
                 **kwargs,
             )
+            fcy_logger.debug(f"Sent an alert to the following AlertGuild: {alert_guild!s}")
 
     @commands.slash_command(
         name = "alert",

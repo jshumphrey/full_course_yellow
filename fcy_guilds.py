@@ -37,6 +37,13 @@ class InstalledGuild:
         self.enabled = enabled
         self.testing = testing
 
+    def __repr__(self) -> str:
+        return (
+            f"<{type(self).__name__} object at {id(self)} "
+            f"(id={self.id}, name={self.name}, enabled={self.enabled}, testing={self.testing})"
+            ">"
+        )
+
     def __str__(self) -> str:
         return self.name
 

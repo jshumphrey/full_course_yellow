@@ -85,7 +85,7 @@ ALL_ENABLED_GUILDS = ENABLED_MONITORED_GUILDS | ENABLED_ALERT_GUILDS
 ALL_ENABLED_GUILD_OBJECTS = set(ENABLED_MONITORED_GUILDS.values()) | set(ENABLED_ALERT_GUILDS.values())
 
 ALL_TESTING_GUILDS = {ig_id: ig for ig_id, ig in ALL_GUILDS.items() if ig.testing is True}
-ENABLED_TESTING_GUILDS = {ig_id: ig for ig_id, ig in ALL_GUILDS.items() if ig.enabled is True}
+ENABLED_TESTING_GUILDS = {ig_id: ig for ig_id, ig in ALL_TESTING_GUILDS.items() if ig.enabled is True}
 
 if __name__ == "__main__":
     breakpoint() # pylint: disable = forgotten-debug-statement

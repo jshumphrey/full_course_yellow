@@ -394,6 +394,16 @@ class FCYFunctionality(commands.Cog):
     ) -> None:
         """This handles the process of sending a prepared alert out to ALL configured AlertGuilds."""
 
+        fcy_logger.debug(
+            "send_alerts called with the following parameters: "
+            f"offending_actor: {offending_actor}, "
+            f"alerting_server_name: {alerting_server_name}, "
+            f"alert_reason: {alert_reason}, "
+            f"attachment_url: {attachment_url}, "
+            f"message_body: {message_body}, "
+            f"testing_guilds_only: {testing_guilds_only}, "
+        )
+
         base_embed = self.generate_base_alert_embed(
             offending_actor = offending_actor,
             alerting_server_name = alerting_server_name,

@@ -17,6 +17,36 @@ from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-im
 fcy_logger = logging.getLogger("full_course_yellow")
 
 
+class Alert:
+    """An alert raised by a moderator to warn other moderators about a particular bad actor."""
+
+    offending_actor: Actor
+    alerting_actor: Actor
+    alerting_server: str
+    reason: str
+    attachment_url: Optional[str]
+    is_test_alert: bool
+
+    timestamp: datetime.datetime
+
+    def __init__(
+        self,
+        offending_actor: Actor,
+        alerting_actor: Actor,
+        alerting_server: str,
+        reason: Optional[str] = None,
+        attachment_url: Optional[str] = None,
+        is_test_alert: bool = False,
+    ):
+        self.offending_actor = offending_actor
+        self.alerting_actor = alerting_actor
+        self.alerting_server = alerting_server
+        self.reason = reason or "[No reason provided]"
+        self.attachment_url = attachment_url
+        self.is_test_alert = is_test_alert
+        self.timestamp = datetime.datetime.now()
+
+
 class FCYFunctionality(commands.Cog):
     """This cog implements the majority of the functionality for the Full Course Yellow bot."""
 

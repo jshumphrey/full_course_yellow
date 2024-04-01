@@ -17,6 +17,13 @@ from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-im
 fcy_logger = logging.getLogger("full_course_yellow")
 
 
+class CommandUserError(Exception):
+    """A user invoked a command improperly in some way.
+
+    This exception type is typically raised so that it can propagate up the call stack to alert a caller that the command's
+    execution flow ought to be stopped prematurely."""
+
+
 class FCYFunctionality(commands.Cog):
     """This cog implements the majority of the functionality for the Full Course Yellow bot."""
 

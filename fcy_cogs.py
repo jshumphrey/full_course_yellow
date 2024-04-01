@@ -155,6 +155,33 @@ class FCYFunctionality(commands.Cog):
 
         fcy_logger.info("Populated FCYFunctionality.alert_guild_members.")
 
+    async def validate_command_environment(self, ctx: discord.ApplicationContext) -> None:
+        """Validate that a command is being run in an appropriate environment.
+
+        If the environment is not valid, respond to the user with an error message, log that this has happened, and raise
+        CommandUserError so that the caller knows how to proceed.
+
+        Args:
+            ctx: The ApplicationContext in which the command was run.
+
+        Returns: None.
+
+        Raises:
+            CommandUserError: The command was run in an inappropriate environment.
+                Callers should NOT proceed with the execution of the command.
+        """
+        if not isinstance(self.determine_command_environment(ctx), fcy_guilds.AlertGuild):
+            await ctx.respond(
+                content = ("You have used this command from an invalid location."),
+                ephemeral = True,
+                delete_after = 60,
+            )
+            fcy_logger.info(
+                f"Sent invalid location error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError
+
     async def send_non_id_user_id_error_message(
         self,
         ctx: discord.ApplicationContext,
@@ -188,19 +215,6 @@ class FCYFunctionality(commands.Cog):
         )
         fcy_logger.info(
             f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
-
-    async def send_invalid_environment_error_message(self, ctx: discord.ApplicationContext) -> None:
-        """Send an error message to the user that they're not allowed to run the command they're running
-        from the environment they're running it from."""
-        await ctx.respond(
-            content = ("You have used this command from an invalid location."),
-            ephemeral = True,
-            delete_after = 60,
-        )
-        fcy_logger.info(
-            f"Sent invalid location error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
             f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
         )
 
@@ -478,9 +492,10 @@ class FCYFunctionality(commands.Cog):
         # First, check for some situations that can be easily and QUICKLY checked for and responded to.
         # If we have to do any more work than "do a basic check and send a single response", we'll defer the response.
 
-        command_environment = self.determine_command_environment(ctx)
-        if not isinstance(command_environment, fcy_guilds.AlertGuild):
-            await self.send_invalid_environment_error_message(ctx)
+        try:
+            await self.validate_command_environment(ctx)
+
+        except CommandUserError:
             return
 
         # Make sure `user_id` looks like a Discord User ID (a string of digits), and not a username or display name.

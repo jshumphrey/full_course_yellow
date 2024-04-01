@@ -155,7 +155,7 @@ class FCYFunctionality(commands.Cog):
 
         fcy_logger.info("Populated FCYFunctionality.alert_guild_members.")
 
-    async def validate_command_environment(self, ctx: discord.ApplicationContext) -> None:
+    async def validate_command_environment(self, ctx: discord.ApplicationContext):
         """Validate that a command is being run in an appropriate environment.
 
         If the environment is not valid, respond to the user with an error message, log that this has happened, and raise
@@ -163,8 +163,6 @@ class FCYFunctionality(commands.Cog):
 
         Args:
             ctx: The ApplicationContext in which the command was run.
-
-        Returns: None.
 
         Raises:
             CommandUserError: The command was run in an inappropriate environment.
@@ -182,24 +180,34 @@ class FCYFunctionality(commands.Cog):
             )
             raise CommandUserError
 
-    async def send_non_id_user_id_error_message(
-        self,
-        ctx: discord.ApplicationContext,
-        option_name: str = "user_id",
-    ) -> None:
-        """Send an error message to the user that the Discord User ID they provided isn't actually a User ID."""
-        await ctx.respond(
-            content = (
-                f"Sorry, it looks like the `{option_name}` you gave me isn't an actual Discord User ID.\n"
-                "Remember that this needs to be a user ***ID*** - a big number, not text."
-            ),
-            ephemeral = True,
-            delete_after = 30,
-        )
-        fcy_logger.info(
-            f"Sent non-ID User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
+    async def validate_user_id_format(self, ctx: discord.ApplicationContext, user_id: str):
+        """Validate that a user-provided User ID actually looks like a User ID (i.e. is all digits).
+
+        If the User ID does not look valid, respond to the user with an error message, log that this has happened, and raise
+        CommandUserError so that the caller knows how to proceed.
+
+        Args:
+            ctx: The ApplicationContext in which the command was run.
+            user_id: A user-provided User ID in string form.
+
+        Raises:
+            CommandUserError: The User ID provided by the user was not valid.
+                Callers should NOT proceed with the execution of the command.
+        """
+        if not user_id.isdigit():
+            await ctx.respond(
+                content = (
+                    "Sorry, it looks like the `user_id` you gave me isn't an actual Discord User ID.\n"
+                    "Remember that this needs to be a user ***ID*** - a big number, not text."
+                ),
+                ephemeral = True,
+                delete_after = 30,
+            )
+            fcy_logger.info(
+                f"Sent non-ID User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError
 
     async def send_moderator_error_message(self, ctx: discord.ApplicationContext) -> None:
         """Send an error message to the user that the Discord User ID they provided belongs to a moderator."""
@@ -494,13 +502,9 @@ class FCYFunctionality(commands.Cog):
 
         try:
             await self.validate_command_environment(ctx)
+            await self.validate_user_id_format(ctx, user_id)
 
         except CommandUserError:
-            return
-
-        # Make sure `user_id` looks like a Discord User ID (a string of digits), and not a username or display name.
-        if not user_id.isdigit():
-            await self.send_non_id_user_id_error_message(ctx)
             return
 
         # Make sure that we can actually find a User with the provided User ID.

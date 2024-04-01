@@ -533,8 +533,6 @@ class FCYFunctionality(commands.Cog):
     ) -> None:
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 
-        message_kwargs: dict[str, Any] = {}
-
         # First, perform some validations that can be done easily and QUICKLY.
         # If these valiations pass, we'll always then defer the response since we'll have a fair amount of work to do.
         try:
@@ -559,7 +557,6 @@ class FCYFunctionality(commands.Cog):
                 ctx,
                 alert_reason = reason,
                 attachment_url = attachment.url if attachment else None,
-                **message_kwargs
             )
             return
 
@@ -571,7 +568,6 @@ class FCYFunctionality(commands.Cog):
             attachment_url = attachment.url if attachment else None,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
             testing_guilds_only = ctx.guild.id in fcy_constants.ENABLED_TESTING_GUILDS, # type: ignore - we know that the Guild won't be None
-            **message_kwargs,
         )
 
         # When we go to respond, we don't know whether we had to ask the user for more information about the server.

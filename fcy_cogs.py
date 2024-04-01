@@ -209,6 +209,42 @@ class FCYFunctionality(commands.Cog):
             )
             raise CommandUserError
 
+    async def get_and_validate_user_from_id(self, ctx: discord.ApplicationContext, user_id: str) -> Actor:
+        """Attempt to get an Actor from a user-provided User ID, and validate that such an Actor actually exists.
+
+        If no such Actor exists with the provided User ID, respond to the user with an error message, log that this has happened,
+        and raise CommandUserError so that the caller knows how to proceed.
+
+        Args:
+            ctx: The ApplicationContext in which the command was run.
+            user_id: A user-provided User ID in string form.
+                This User ID is assumed to "look valid" - i.e. it's only numeric characters.
+
+        Returns:
+            The Actor corresponding to the provided user_id.
+
+        Raises:
+            CommandUserError: No Actor could be found with the provided User ID.
+                Callers should NOT proceed with the execution of the command.
+        """
+        try:
+            return await self.bot.solidify_actor_abstract(user_id)
+
+        except commands.UserNotFound as ex:
+            await ctx.respond(
+                content = (
+                    f"Sorry, I looked, but I couldn't find any Discord user with the User ID `{user_id}`.\n"
+                    "Please double-check that you typed or pasted it correctly."
+                ),
+                ephemeral = True,
+                delete_after = 30,
+            )
+            fcy_logger.info(
+                f"Sent User ID not found error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError from ex
+
     async def send_moderator_error_message(self, ctx: discord.ApplicationContext) -> None:
         """Send an error message to the user that the Discord User ID they provided belongs to a moderator."""
         await ctx.respond(
@@ -223,22 +259,6 @@ class FCYFunctionality(commands.Cog):
         )
         fcy_logger.info(
             f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
-
-    async def send_user_id_not_found_error_message(self, ctx: discord.ApplicationContext) -> None:
-        """Send an error message to the user that the Discord User ID they provided could not be found."""
-        user_id = self.bot.get_option_value(ctx, "user_id")
-        await ctx.respond(
-            content = (
-                f"Sorry, I looked, but I couldn't find any Discord user with the User ID `{user_id}`.\n"
-                "Please double-check that you typed or pasted it correctly."
-            ),
-            ephemeral = True,
-            delete_after = 30,
-        )
-        fcy_logger.info(
-            f"Sent User ID not found error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
             f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
         )
 
@@ -497,21 +517,14 @@ class FCYFunctionality(commands.Cog):
 
         message_kwargs: dict[str, Any] = {}
 
-        # First, check for some situations that can be easily and QUICKLY checked for and responded to.
-        # If we have to do any more work than "do a basic check and send a single response", we'll defer the response.
-
+        # First, perform some validations that can be done easily and QUICKLY.
+        # If these valiations pass, we'll always then defer the response since we'll have a fair amount of work to do.
         try:
             await self.validate_command_environment(ctx)
             await self.validate_user_id_format(ctx, user_id)
+            solidified_actor = await self.get_and_validate_user_from_id(ctx, user_id)
 
         except CommandUserError:
-            return
-
-        # Make sure that we can actually find a User with the provided User ID.
-        try:
-            solidified_actor = await self.bot.solidify_actor_abstract(user_id)
-        except commands.UserNotFound:
-            await self.send_user_id_not_found_error_message(ctx)
             return
 
         is_self_alert: bool = solidified_actor == ctx.author  # This'll get reused in several places.

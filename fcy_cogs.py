@@ -7,7 +7,7 @@ import discord  # This uses pycord, not discord.py
 from discord.ext import commands
 import logging
 import typing
-from typing import Any, Optional
+from typing import Optional
 
 import full_course_yellow as fcy
 import fcy_guilds
@@ -15,6 +15,13 @@ import fcy_constants
 from fcy_types import *  # pylint: disable = wildcard-import, unused-wildcard-import
 
 fcy_logger = logging.getLogger("full_course_yellow")
+
+
+class CommandUserError(Exception):
+    """A user invoked a command improperly in some way.
+
+    This exception type is typically raised so that it can propagate up the call stack to alert a caller that the command's
+    execution flow ought to be stopped prematurely."""
 
 
 class Alert:
@@ -178,70 +185,130 @@ class FCYFunctionality(commands.Cog):
 
         fcy_logger.info("Populated FCYFunctionality.alert_guild_members.")
 
-    async def send_non_id_user_id_error_message(
-        self,
-        ctx: discord.ApplicationContext,
-        option_name: str = "user_id",
-    ) -> None:
-        """Send an error message to the user that the Discord User ID they provided isn't actually a User ID."""
-        await ctx.respond(
-            content = (
-                f"Sorry, it looks like the `{option_name}` you gave me isn't an actual Discord User ID.\n"
-                "Remember that this needs to be a user ***ID*** - a big number, not text."
-            ),
-            ephemeral = True,
-            delete_after = 30,
-        )
-        fcy_logger.info(
-            f"Sent non-ID User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
+    async def validate_command_environment(self, ctx: discord.ApplicationContext):
+        """Validate that a command is being run in an appropriate environment.
 
-    async def send_moderator_error_message(self, ctx: discord.ApplicationContext) -> None:
-        """Send an error message to the user that the Discord User ID they provided belongs to a moderator."""
-        await ctx.respond(
-            content = (
-                "The provided user ID belongs to a server moderator.\n"
-                "Please don't ping a bunch of roles just to make a joke.\n\n"
-                "If you just want to test out the bot, send an alert against **your own User ID**.\n"
-                "The bot will detect that it's a \"self-alert\" and send an alert that only you can see."
-            ),
-            ephemeral = True,
-            delete_after = 60,
-        )
-        fcy_logger.info(
-            f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
+        If the environment is not valid, respond to the user with an error message, log that this has happened, and raise
+        CommandUserError so that the caller knows how to proceed.
 
-    async def send_invalid_environment_error_message(self, ctx: discord.ApplicationContext) -> None:
-        """Send an error message to the user that they're not allowed to run the command they're running
-        from the environment they're running it from."""
-        await ctx.respond(
-            content = ("You have used this command from an invalid location."),
-            ephemeral = True,
-            delete_after = 60,
-        )
-        fcy_logger.info(
-            f"Sent invalid location error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
+        Args:
+            ctx: The ApplicationContext in which the command was run.
 
-    async def send_user_id_not_found_error_message(self, ctx: discord.ApplicationContext) -> None:
-        """Send an error message to the user that the Discord User ID they provided could not be found."""
-        user_id = self.bot.get_option_value(ctx, "user_id")
-        await ctx.respond(
-            content = (
-                f"Sorry, I looked, but I couldn't find any Discord user with the User ID `{user_id}`.\n"
-                "Please double-check that you typed or pasted it correctly."
-            ),
-            ephemeral = True,
-            delete_after = 30,
-        )
-        fcy_logger.info(
-            f"Sent User ID not found error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
+        Raises:
+            CommandUserError: The command was run in an inappropriate environment.
+                Callers should NOT proceed with the execution of the command.
+        """
+        if not isinstance(self.determine_command_environment(ctx), fcy_guilds.AlertGuild):
+            await ctx.respond(
+                content = ("You have used this command from an invalid location."),
+                ephemeral = True,
+                delete_after = 60,
+            )
+            fcy_logger.info(
+                f"Sent invalid location error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError
+
+    async def validate_user_id_format(self, ctx: discord.ApplicationContext, user_id: str):
+        """Validate that a user-provided User ID actually looks like a User ID (i.e. is all digits).
+
+        If the User ID does not look valid, respond to the user with an error message, log that this has happened, and raise
+        CommandUserError so that the caller knows how to proceed.
+
+        Args:
+            ctx: The ApplicationContext in which the command was run.
+            user_id: A user-provided User ID in string form.
+
+        Raises:
+            CommandUserError: The User ID provided by the user was not valid.
+                Callers should NOT proceed with the execution of the command.
+        """
+        if not user_id.isdigit():
+            await ctx.respond(
+                content = (
+                    "Sorry, it looks like the `user_id` you gave me isn't an actual Discord User ID.\n"
+                    "Remember that this needs to be a user ***ID*** - a big number, not text."
+                ),
+                ephemeral = True,
+                delete_after = 30,
+            )
+            fcy_logger.info(
+                f"Sent non-ID User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError
+
+    async def get_and_validate_user_from_id(self, ctx: discord.ApplicationContext, user_id: str) -> Actor:
+        """Attempt to get an Actor from a user-provided User ID, and validate that such an Actor actually exists.
+
+        If no such Actor exists with the provided User ID, respond to the user with an error message, log that this has happened,
+        and raise CommandUserError so that the caller knows how to proceed.
+
+        Args:
+            ctx: The ApplicationContext in which the command was run.
+            user_id: A user-provided User ID in string form.
+                This User ID is assumed to "look valid" - i.e. it's only numeric characters.
+
+        Returns:
+            The Actor corresponding to the provided user_id.
+
+        Raises:
+            CommandUserError: No Actor could be found with the provided User ID.
+                Callers should NOT proceed with the execution of the command.
+        """
+        try:
+            return await self.bot.solidify_actor_abstract(user_id)
+
+        except commands.UserNotFound as ex:
+            await ctx.respond(
+                content = (
+                    f"Sorry, I looked, but I couldn't find any Discord user with the User ID `{user_id}`.\n"
+                    "Please double-check that you typed or pasted it correctly."
+                ),
+                ephemeral = True,
+                delete_after = 30,
+            )
+            fcy_logger.info(
+                f"Sent User ID not found error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError from ex
+
+    async def validate_target_user_not_moderator(self, ctx: discord.ApplicationContext, user_id: str):
+        """Validate that the target of a command is not a moderator (a member of an AlertGuild).
+
+        If the provided user_id is found to be a moderator, respond to the user with an error message, log that this has happene,
+        and raise CommandUserError so that the caller knows how to proceed.
+
+        Args:
+            ctx: The ApplicationContext in which the command was run.
+            user_id: A user-provided User ID in string form.
+
+        Raises:
+            CommandUserError: The user with the provided User ID was found to be a member of one or more AlertGuilds.
+                Callers should NOT proceed with the execution of the command.
+        """
+        if (
+            user_id in self.alert_guild_members  # The user is in an AlertGuild (which are private for moderators)
+            and user_id not in fcy_constants.TESTING_USER_IDS  # And this check hasn't been bypassed for testing purposes
+            and not user_id == ctx.author.id  # And the user isn't raising a self alert (that's handled separately)
+        ):
+            await ctx.respond(
+                content = (
+                    "The provided user ID belongs to a server moderator.\n"
+                    "Please don't ping a bunch of roles just to make a joke.\n\n"
+                    "If you just want to test out the bot, send an alert against **your own User ID**.\n"
+                    "The bot will detect that it's a \"self-alert\" and send an alert that only you can see."
+                ),
+                ephemeral = True,
+                delete_after = 60,
+            )
+            fcy_logger.info(
+                f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError
 
     async def fetch_most_recent_bans(self, guild: discord.Guild, max_bans: int = 5) -> list[discord.AuditLogEntry]:
         """This wraps the process of retrieving the most recent Audit Log events for bans in the server."""
@@ -464,6 +531,45 @@ class FCYFunctionality(commands.Cog):
             fcy_logger.debug(f"Sent an alert to the following AlertGuild: {alert_guild!s}")
 
     @commands.slash_command(
+        name = "scan",
+        description = "Scan the monitored servers for a problematic user, without raising a proper Alert.",
+        guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
+        guild_only = True,
+        cooldown = None,
+    )
+    @discord.commands.option(
+        "user_id",
+        type = str,
+        description = "The Discord User ID of the user you're scanning for"
+    )
+    async def slash_scan(self, ctx: discord.ApplicationContext, user_id: str) -> None:
+        """Executes the flow to scan the MonitoredGuilds from a slash command, responding to the user ephemerally."""
+
+        # Perform some pre-execution validations.
+        try:
+            await self.validate_command_environment(ctx)
+            await self.validate_user_id_format(ctx, user_id)
+            solidified_actor = await self.get_and_validate_user_from_id(ctx, user_id)
+        except CommandUserError:
+            return
+
+        base_embed = self.generate_base_alert_embed(offending_actor = solidified_actor, alerting_server_name = "")
+        base_embed.remove_field(0) # Removes the "Relevant server" field
+        base_embed.remove_field(0) # Removes the "Reason for alert" field, which has been "pushed down" to index 0
+        base_embed = base_embed.add_field(
+            name = "Scanned servers with user",
+            value = ", ".join([guild.name for guild in await self.get_mutual_monitored_guilds(solidified_actor)]),
+            inline = False
+        )
+
+        await ctx.respond(
+            content = "Finished scanning the monitored servers; here are the results.",
+            embed = base_embed,
+            ephemeral = True,
+            delete_after = None,
+        )
+
+    @commands.slash_command(
         name = "alert",
         description = "Raise an alert about a problematic user.",
         guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
@@ -496,38 +602,14 @@ class FCYFunctionality(commands.Cog):
     ) -> None:
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 
-        message_kwargs: dict[str, Any] = {}
-
-        # First, check for some situations that can be easily and QUICKLY checked for and responded to.
-        # If we have to do any more work than "do a basic check and send a single response", we'll defer the response.
-
-        command_environment = self.determine_command_environment(ctx)
-        if not isinstance(command_environment, fcy_guilds.AlertGuild):
-            await self.send_invalid_environment_error_message(ctx)
-            return
-
-        # Make sure `user_id` looks like a Discord User ID (a string of digits), and not a username or display name.
-        if not user_id.isdigit():
-            await self.send_non_id_user_id_error_message(ctx)
-            return
-
-        # Make sure that we can actually find a User with the provided User ID.
+        # First, perform some validations that can be done easily and QUICKLY.
+        # If these validations pass, we'll always then defer the response since we'll have a fair amount of work to do.
         try:
-            solidified_actor = await self.bot.solidify_actor_abstract(user_id)
-        except commands.UserNotFound:
-            await self.send_user_id_not_found_error_message(ctx)
-            return
-
-        is_self_alert: bool = solidified_actor == ctx.author  # This'll get reused in several places.
-
-        # If the offending user is a server moderator, tell off the user about it.
-        # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
-        if (
-            user_id in self.alert_guild_members  # The user is in an AlertGuild (which are private for moderators)
-            and user_id not in fcy_constants.TESTING_USER_IDS  # And this check hasn't been bypassed for testing purposes
-            and not is_self_alert  # And the user isn't raising a self alert (that's handled separately)
-        ):
-            await self.send_moderator_error_message(ctx)
+            await self.validate_command_environment(ctx)
+            await self.validate_user_id_format(ctx, user_id)
+            solidified_actor = await self.get_and_validate_user_from_id(ctx, user_id)
+            await self.validate_target_user_not_moderator(ctx, user_id)
+        except CommandUserError:
             return
 
         ##########################################################################################
@@ -539,12 +621,11 @@ class FCYFunctionality(commands.Cog):
 
         # If the user is creating an alert against themself, that's valid, but we have a separate
         # execution flow for that, which sends it ephemerally and doesn't ping anyone.
-        if is_self_alert:
+        if solidified_actor == ctx.author:
             await self.send_self_alert(
                 ctx,
                 alert_reason = reason,
                 attachment_url = attachment.url if attachment else None,
-                **message_kwargs
             )
             return
 
@@ -556,7 +637,6 @@ class FCYFunctionality(commands.Cog):
             attachment_url = attachment.url if attachment else None,
             message_body = f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!",
             testing_guilds_only = ctx.guild.id in fcy_constants.ENABLED_TESTING_GUILDS, # type: ignore - we know that the Guild won't be None
-            **message_kwargs,
         )
 
         # When we go to respond, we don't know whether we had to ask the user for more information about the server.

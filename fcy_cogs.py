@@ -245,22 +245,40 @@ class FCYFunctionality(commands.Cog):
             )
             raise CommandUserError from ex
 
-    async def send_moderator_error_message(self, ctx: discord.ApplicationContext) -> None:
-        """Send an error message to the user that the Discord User ID they provided belongs to a moderator."""
-        await ctx.respond(
-            content = (
-                "The provided user ID belongs to a server moderator.\n"
-                "Please don't ping a bunch of roles just to make a joke.\n\n"
-                "If you just want to test out the bot, send an alert against **your own User ID**.\n"
-                "The bot will detect that it's a \"self-alert\" and send an alert that only you can see."
-            ),
-            ephemeral = True,
-            delete_after = 60,
-        )
-        fcy_logger.info(
-            f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
-            f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
-        )
+    async def validate_target_user_not_moderator(self, ctx: discord.ApplicationContext, user_id: str):
+        """Validate that the target of a command is not a moderator (a member of an AlertGuild).
+
+        If the provided user_id is found to be a moderator, respond to the user with an error message, log that this has happene,
+        and raise CommandUserError so that the caller knows how to proceed.
+
+        Args:
+            ctx: The ApplicationContext in which the command was run.
+            user_id: A user-provided User ID in string form.
+
+        Raises:
+            CommandUserError: The user with the provided User ID was found to be a member of one or more AlertGuilds.
+                Callers should NOT proceed with the execution of the command.
+        """
+        if (
+            user_id in self.alert_guild_members  # The user is in an AlertGuild (which are private for moderators)
+            and user_id not in fcy_constants.TESTING_USER_IDS  # And this check hasn't been bypassed for testing purposes
+            and not user_id == ctx.author.id  # And the user isn't raising a self alert (that's handled separately)
+        ):
+            await ctx.respond(
+                content = (
+                    "The provided user ID belongs to a server moderator.\n"
+                    "Please don't ping a bunch of roles just to make a joke.\n\n"
+                    "If you just want to test out the bot, send an alert against **your own User ID**.\n"
+                    "The bot will detect that it's a \"self-alert\" and send an alert that only you can see."
+                ),
+                ephemeral = True,
+                delete_after = 60,
+            )
+            fcy_logger.info(
+                f"Sent moderator User ID error to {self.bot.pprint_actor_name(ctx.author)} as a result of their invocation "
+                f"of {ctx.command.name} at {self.bot.get_current_utc_iso_time_str()}, with options: {ctx.selected_options}"
+            )
+            raise CommandUserError
 
     async def fetch_most_recent_bans(self, guild: discord.Guild, max_bans: int = 5) -> list[discord.AuditLogEntry]:
         """This wraps the process of retrieving the most recent Audit Log events for bans in the server."""
@@ -523,20 +541,8 @@ class FCYFunctionality(commands.Cog):
             await self.validate_command_environment(ctx)
             await self.validate_user_id_format(ctx, user_id)
             solidified_actor = await self.get_and_validate_user_from_id(ctx, user_id)
-
+            await self.validate_target_user_not_moderator(ctx, user_id)
         except CommandUserError:
-            return
-
-        is_self_alert: bool = solidified_actor == ctx.author  # This'll get reused in several places.
-
-        # If the offending user is a server moderator, tell off the user about it.
-        # We can effectively do this by checking to see if the user is in any of the ALERT_GUILDS.
-        if (
-            user_id in self.alert_guild_members  # The user is in an AlertGuild (which are private for moderators)
-            and user_id not in fcy_constants.TESTING_USER_IDS  # And this check hasn't been bypassed for testing purposes
-            and not is_self_alert  # And the user isn't raising a self alert (that's handled separately)
-        ):
-            await self.send_moderator_error_message(ctx)
             return
 
         ##########################################################################################
@@ -548,7 +554,7 @@ class FCYFunctionality(commands.Cog):
 
         # If the user is creating an alert against themself, that's valid, but we have a separate
         # execution flow for that, which sends it ephemerally and doesn't ping anyone.
-        if is_self_alert:
+        if solidified_actor == ctx.author:
             await self.send_self_alert(
                 ctx,
                 alert_reason = reason,

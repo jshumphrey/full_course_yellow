@@ -7,7 +7,7 @@ import discord  # This uses pycord, not discord.py
 from discord.ext import commands
 import logging
 import typing
-from typing import Any, Optional
+from typing import Optional
 
 import full_course_yellow as fcy
 import fcy_guilds
@@ -499,6 +499,45 @@ class FCYFunctionality(commands.Cog):
                 **kwargs,
             )
             fcy_logger.debug(f"Sent an alert to the following AlertGuild: {alert_guild!s}")
+
+    @commands.slash_command(
+        name = "scan",
+        description = "Scan the monitored servers for a problematic user, without raising a proper Alert.",
+        guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
+        guild_only = True,
+        cooldown = None,
+    )
+    @discord.commands.option(
+        "user_id",
+        type = str,
+        description = "The Discord User ID of the user you're scanning for"
+    )
+    async def slash_scan(self, ctx: discord.ApplicationContext, user_id: str) -> None:
+        """Executes the flow to scan the MonitoredGuilds from a slash command, responding to the user ephemerally."""
+
+        # Perform some pre-execution validations.
+        try:
+            await self.validate_command_environment(ctx)
+            await self.validate_user_id_format(ctx, user_id)
+            solidified_actor = await self.get_and_validate_user_from_id(ctx, user_id)
+        except CommandUserError:
+            return
+
+        base_embed = self.generate_base_alert_embed(offending_actor = solidified_actor, alerting_server_name = "")
+        base_embed.remove_field(0) # Removes the "Relevant server" field
+        base_embed.remove_field(0) # Removes the "Reason for alert" field, which has been "pushed down" to index 0
+        base_embed = base_embed.add_field(
+            name = "Scanned servers with user",
+            value = ", ".join([guild.name for guild in await self.get_mutual_monitored_guilds(solidified_actor)]),
+            inline = False
+        )
+
+        await ctx.respond(
+            content = "Finished scanning servers for the provided User ID.",
+            embed = base_embed,
+            ephemeral = True,
+            delete_after = None,
+        )
 
     @commands.slash_command(
         name = "alert",

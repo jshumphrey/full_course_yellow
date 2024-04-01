@@ -533,7 +533,7 @@ class FCYFunctionality(commands.Cog):
         )
 
         await ctx.respond(
-            content = "Finished scanning servers for the provided User ID.",
+            content = "Finished scanning the monitored servers; here are the results.",
             embed = base_embed,
             ephemeral = True,
             delete_after = None,

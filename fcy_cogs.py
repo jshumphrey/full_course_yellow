@@ -534,7 +534,7 @@ class FCYFunctionality(commands.Cog):
         """Executes the flow to create and send an alert from a slash command. Responds to the user ephemerally."""
 
         # First, perform some validations that can be done easily and QUICKLY.
-        # If these valiations pass, we'll always then defer the response since we'll have a fair amount of work to do.
+        # If these validations pass, we'll always then defer the response since we'll have a fair amount of work to do.
         try:
             await self.validate_command_environment(ctx)
             await self.validate_user_id_format(ctx, user_id)

@@ -262,7 +262,7 @@ class FCYFunctionality(commands.Cog):
         if (
             user_id in self.alert_guild_members  # The user is in an AlertGuild (which are private for moderators)
             and user_id not in fcy_constants.TESTING_USER_IDS  # And this check hasn't been bypassed for testing purposes
-            and not user_id == ctx.author.id  # And the user isn't raising a self alert (that's handled separately)
+            and not user_id == str(ctx.author.id)  # And the user isn't raising a self alert (that's handled separately)
         ):
             await ctx.respond(
                 content = (

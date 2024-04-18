@@ -367,7 +367,6 @@ class FCYFunctionality(commands.Cog):
         alerting_server_name: str,
         alert_reason: Optional[str] = None,
         attachment_url: Optional[str] = None,
-        timestamp: Optional[datetime.datetime] = None,
     ) -> discord.Embed:
         """This handles the process of creating the embed for a "New Alert" message.
 
@@ -378,13 +377,13 @@ class FCYFunctionality(commands.Cog):
         emg_string = f"{emg_names}\n(To include your server in this list, message Lux in #bot.)"
 
         base_embed = (
-            discord.Embed(type = "rich", timestamp = timestamp or datetime.datetime.now())
+            discord.Embed(type = "rich", timestamp = None)
             .set_author(
                 name = self.bot.pprint_actor_name(offending_actor),
                 icon_url = offending_actor.display_avatar.url,
             )
             .set_image(url = attachment_url)
-            .set_footer(text = f"Offending user's ID: {offending_actor.id}")
+            .set_footer(text = str(offending_actor.id))
             .add_field(name = "Relevant server", value = alerting_server_name, inline = False)
             .add_field(name = "Reason for alert", value = alert_reason or "[No reason provided]", inline = False)
             .add_field(name = "Servers scanned for offending user", value = emg_string, inline = False)

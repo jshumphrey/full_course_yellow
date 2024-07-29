@@ -606,7 +606,7 @@ class FCYFunctionality(commands.Cog):
             attachment_url = attachment.url if attachment else None,
             message_body = (
                 f"New alert raised by {self.bot.pprint_actor_name(ctx.author)}!\n"
-                "_(To raise an alert yourself, use the `/alert` command in the <#960480902331383809> channel.)_"
+                "_(To raise an alert yourself, use the `/alert` command in <#960480902331383809>.)_"
             ),
             testing_guilds_only = ctx.guild.id in fcy_constants.ENABLED_TESTING_GUILDS, # type: ignore - we know that the Guild won't be None
         )

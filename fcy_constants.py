@@ -28,6 +28,7 @@ ORBR_MG = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", Monitore
 IMSA_MG = MonitoredGuild(878844647173132359, "IMSA", MonitoredGuild.placeholder_ale_handler, enabled = False)
 EXTREME_E_MG = MonitoredGuild(830080368089890887, "Extreme E", MonitoredGuild.placeholder_ale_handler, enabled = False)
 R_INDYCAR_MG = MonitoredGuild(360079258980319232, "/r/INDYCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
+ALPINE_MG = MonitoredGuild(824991244706512897, "Alpine", MonitoredGuild.placeholder_ale_handler, enabled = False)
 
 LUX_DEV_AG = AlertGuild(
     id = 1079109375647555695,
@@ -57,6 +58,7 @@ SMS_AG = AlertGuild(
         830080368089890887: 1133781212251553883, # Extreme E
         360079258980319232: 1112467709045788692, # /r/IndyCar
         1135611684560572466: 1194260632174874754, # Williams Gaming Club
+        824991244706512897: 1283392453721980969, # Alpine
     },
 )
 

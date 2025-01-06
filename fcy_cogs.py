@@ -503,8 +503,8 @@ class FCYFunctionality(commands.Cog):
         description = "Scan the monitored servers for a problematic user, without raising a proper Alert.",
         guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
         cooldown = None,
+        contexts = discord.InteractionContextType.guild,
     )
-    @discord.commands.guild_only()
     @discord.commands.option(
         "user_id",
         type = str,
@@ -542,8 +542,8 @@ class FCYFunctionality(commands.Cog):
         description = "Raise an alert about a problematic user.",
         guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
         cooldown = None,
+        contexts = discord.InteractionContextType.guild,
     )
-    @discord.commands.guild_only()
     @discord.commands.option(
         "user_id",
         type = str,

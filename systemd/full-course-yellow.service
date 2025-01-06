@@ -4,7 +4,7 @@ After=multi-user.target
 Requires=network.target
 
 # If the service crashes out more than 3 times in 300 seconds (5 minutes), stop trying to restart it
-StartLimitBurst=3
+StartLimitBurst=5
 StartLimitIntervalSec=300
 
 [Service]
@@ -21,8 +21,9 @@ StandardError=journal
 SyslogIdentifier=full-course-yellow
 SyslogLevelPrefix=true
 
+# If the bot crashes out, try restarting it every 2 minutes
 Restart=on-failure
-RestartSec=30
+RestartSec=120
 
 [Install]
 WantedBy=multi-user.target

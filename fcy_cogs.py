@@ -2,7 +2,6 @@
 that can be imported into the scope of a pycord Bot."""
 # pylint: disable = logging-not-lazy, too-many-arguments
 
-import datetime
 import discord  # This uses pycord, not discord.py
 from discord.ext import commands
 import logging
@@ -503,9 +502,9 @@ class FCYFunctionality(commands.Cog):
         name = "scan",
         description = "Scan the monitored servers for a problematic user, without raising a proper Alert.",
         guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
-        guild_only = True,
         cooldown = None,
     )
+    @discord.commands.guild_only()
     @discord.commands.option(
         "user_id",
         type = str,
@@ -542,9 +541,9 @@ class FCYFunctionality(commands.Cog):
         name = "alert",
         description = "Raise an alert about a problematic user.",
         guild_ids = list(fcy_constants.ENABLED_ALERT_GUILDS.keys()),
-        guild_only = True,
         cooldown = None,
     )
+    @discord.commands.guild_only()
     @discord.commands.option(
         "user_id",
         type = str,

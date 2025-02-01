@@ -21,9 +21,9 @@ WILLIAMS_MG = MonitoredGuild(1135611684560572466, "Williams Gaming Club", Monito
 YES2_MG = MonitoredGuild(765047002156367873, "Yes2 Motorsports", MonitoredGuild.placeholder_ale_handler)
 MCLAREN_MG = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeholder_ale_handler)
 R_WEC_MG = MonitoredGuild(193548511126487040, "/r/WEC", MonitoredGuild.placeholder_ale_handler)
+LTL_MG = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler)
 
 NASCAR_MG = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
-LTL_MG = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler, enabled = False)
 ORBR_MG = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", MonitoredGuild.placeholder_ale_handler, enabled = False)
 IMSA_MG = MonitoredGuild(878844647173132359, "IMSA", MonitoredGuild.placeholder_ale_handler, enabled = False)
 EXTREME_E_MG = MonitoredGuild(830080368089890887, "Extreme E", MonitoredGuild.placeholder_ale_handler, enabled = False)

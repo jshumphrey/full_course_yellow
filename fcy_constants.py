@@ -23,6 +23,7 @@ MCLAREN_MG = MonitoredGuild(897158147511316522, "McLaren", MonitoredGuild.placeh
 R_WEC_MG = MonitoredGuild(193548511126487040, "/r/WEC", MonitoredGuild.placeholder_ale_handler)
 LTL_MG = MonitoredGuild(271077595913781248, "Left Turn Lounge", MonitoredGuild.placeholder_ale_handler)
 ORBR_MG = MonitoredGuild(1014269980960899173, "Oracle Red Bull Racing", MonitoredGuild.placeholder_ale_handler)
+FEEDER_MG = MonitoredGuild(873117886460342302, "Feeder Series", MonitoredGuild.placeholder_ale_handler)
 
 NASCAR_MG = MonitoredGuild(877239953174691910, "NASCAR", MonitoredGuild.placeholder_ale_handler, enabled = False)
 IMSA_MG = MonitoredGuild(878844647173132359, "IMSA", MonitoredGuild.placeholder_ale_handler, enabled = False)

@@ -73,7 +73,6 @@ ALL_MONITORED_GUILDS: dict[GuildID, MonitoredGuild] = {
     )
 }
 ENABLED_MONITORED_GUILDS = {mg_id: mg for mg_id, mg in ALL_MONITORED_GUILDS.items() if mg.enabled is True}
-
 ALL_ALERT_GUILDS: dict[GuildID, AlertGuild] = {
     ag_object.id: ag_object
     for ag_object in sorted(
@@ -90,6 +89,10 @@ ALL_ENABLED_GUILD_OBJECTS = set(ENABLED_MONITORED_GUILDS.values()) | set(ENABLED
 
 ALL_TESTING_GUILDS = {ig_id: ig for ig_id, ig in ALL_GUILDS.items() if ig.testing is True}
 ENABLED_TESTING_GUILDS = {ig_id: ig for ig_id, ig in ALL_TESTING_GUILDS.items() if ig.enabled is True}
+
+# A string of the names of all of the guilds that the bot scans for offending users.
+SCANNED_MG_NAMES = ", ".join(map(str, filter(lambda g: g.testing is False, ENABLED_MONITORED_GUILDS.values())))
+
 
 if __name__ == "__main__":
     breakpoint() # pylint: disable = forgotten-debug-statement

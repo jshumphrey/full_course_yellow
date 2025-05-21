@@ -372,8 +372,8 @@ class FCYFunctionality(commands.Cog):
         The embed generated is the "base embed" - i.e., it will not contain any references to roles
         for a particular server, since we don't yet know which server this alert is being sent to."""
 
-        emg_names = ", ".join([g.name for g in fcy_constants.ENABLED_MONITORED_GUILDS.values() if g.testing is False])
-        emg_string = f"{emg_names}\n(To include your server in this list, message Lux in #bot.)"
+        scanned_mg_string = fcy_constants.SCANNED_MG_NAMES
+        scanned_mg_string = f"{scanned_mg_string}\n(To include your server in this list, message Lux in #bot.)"
 
         base_embed = (
             discord.Embed(type = "rich", timestamp = None)
@@ -385,7 +385,7 @@ class FCYFunctionality(commands.Cog):
             .set_footer(text = str(offending_actor.id))
             .add_field(name = "Relevant server", value = alerting_server_name, inline = False)
             .add_field(name = "Reason for alert", value = alert_reason or "[No reason provided]", inline = False)
-            .add_field(name = "Servers scanned for offending user", value = emg_string, inline = False)
+            .add_field(name = "Servers scanned for offending user", value = scanned_mg_string, inline = False)
         )
 
         return base_embed

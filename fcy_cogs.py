@@ -373,7 +373,7 @@ class FCYFunctionality(commands.Cog):
         for a particular server, since we don't yet know which server this alert is being sent to."""
 
         scanned_mg_string = fcy_constants.SCANNED_MG_NAMES
-        scanned_mg_string = f"{scanned_mg_string}\n(To include your server in this list, message Lux in #bot.)"
+        #scanned_mg_string = f"{scanned_mg_string}\n(To include your server in this list, message Lux in #bot.)"
 
         base_embed = (
             discord.Embed(type = "rich", timestamp = None)

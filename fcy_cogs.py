@@ -484,18 +484,13 @@ class FCYFunctionality(commands.Cog):
         fcy_logger.debug(f"Sending alerts to the following AlertGuilds: {list(map(str, guilds_to_alert))}")
 
         for alert_guild in guilds_to_alert:
-            await alert_guild.get_alert_channel().send(
-                content = alert_guild.decorate_message_body(message_body),
-                embed = (
-                    base_embed.copy()
-                    .add_field(
-                        name = "Scanned servers with user",
-                        value = alert_guild.decorate_mutual_guilds(mutual_mgs),
-                        inline = False,
-                    )
-                ),
-                **kwargs,
-            )
+            final_body = alert_guild.decorate_message_body(message_body)
+            final_mgs = alert_guild.decorate_mutual_guilds(mutual_mgs)
+            final_embed = base_embed.copy()
+            final_embed.add_field(name = "Scanned servers with user", value = final_mgs, inline = False)
+
+            alert_channel = alert_guild.get_alert_channel()
+            await alert_channel.send(content = final_body, embed = final_embed, **kwargs)
             fcy_logger.debug(f"Sent an alert to the following AlertGuild: {alert_guild!s}")
 
     @commands.slash_command(

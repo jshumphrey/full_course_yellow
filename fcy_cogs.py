@@ -490,7 +490,11 @@ class FCYFunctionality(commands.Cog):
             final_embed.add_field(name = "Scanned servers with user", value = final_mgs, inline = False)
 
             alert_channel = alert_guild.get_alert_channel()
-            await alert_channel.send(content = final_body, embed = final_embed, **kwargs)
+            alert_message = await alert_channel.send(content = final_body, embed = final_embed, **kwargs)
+            await alert_channel.create_thread(
+                name = f"{self.bot.pprint_actor_name(offending_actor)} alert discussion",
+                message = alert_message,
+            )
             fcy_logger.debug(f"Sent an alert to the following AlertGuild: {alert_guild!s}")
 
     @commands.slash_command(

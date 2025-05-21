@@ -481,7 +481,7 @@ class FCYFunctionality(commands.Cog):
             ag for ag in fcy_constants.ENABLED_ALERT_GUILDS.values()
             if not (testing_guilds_only is True and ag.testing is False)
         ]
-        fcy_logger.debug(f"Preparing to send alerts to the following AlertGuilds: {[str(g) for g in guilds_to_alert]}")
+        fcy_logger.debug(f"Sending alerts to the following AlertGuilds: {list(map(str, guilds_to_alert))}")
 
         for alert_guild in guilds_to_alert:
             await alert_guild.get_alert_channel().send(

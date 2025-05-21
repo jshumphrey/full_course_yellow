@@ -68,10 +68,10 @@ class FCYBot(discord.Bot):
     def pprint_actor_name(actor: Actor) -> str:
         """This is a quick shortcut to generate a pretty-printed Actor name.
         This requires an actual Actor; await solidify_actor_abstract if necessary."""
-        discord_username = actor.name if actor.discriminator == "0" else f"{actor.name}#{actor.discriminator}"
+        discord_username = actor.name
         if actor.global_name is None or actor.global_name == discord_username:
             return discord_username
-        return f"{actor.global_name} ({actor.name}#{actor.discriminator})"
+        return f"{actor.global_name} ({actor.name})"
 
     @staticmethod
     def get_option_value(ctx: discord.ApplicationContext, option_name: str) -> Any | None:
